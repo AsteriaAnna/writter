@@ -2,13 +2,19 @@
 
 已固定环境：`writter-dev-d0g7h1prq4ce60665`，地域：上海 `ap-shanghai`。
 
-当前代码已构建、测试，但尚未在此环境部署。此对话没有 CloudBase MCP 或控制台授权连接。以下操作由用户在独立的 writter-dev 环境完成。
+## 当前线上状态（2026-10-06）
+
+- 网站：<https://writter-dev-d0g7h1prq4ce60665-1428502724.tcloudbaseapp.com/>
+- 云函数 `writter-api`：Event 型，Nodejs18.15，超时 30s，环境变量 `WRITTER_ALLOWED_UIDS=2107134978465726464`。
+- 数据：本环境无文档数据库（flexdb），持久化落在 **PostgreSQL**（实例 `postgres-k8lowqlc`，schema `public`，表 `projects`），云函数经 `app.rdb()`（PostgREST）读写，采用 `id/owner_id/revision` 条件更新的乐观锁。
+- 热点源：上海云函数可访问 `raw.githubusercontent.com`（生产路径 `feed('24h')` 实测返回 462 条真实数据，AIHOT 独立源如实标记 pending）。GitHub raw 偶有瞬时抖动，失败时页面保留手动入口，不视为该源永久可用。
+- 账号：`administrator`（UID `2107134978465726464`，内置超级管理员）已存在。密码仅在控制台「身份认证 → 用户管理 → administrator → 设置/重置密码」由使用者本人设置，并在正式登录页输入，不进入聊天或仓库。
 
 ## 1. 数据库
 
-建立文档数据库集合 `projects`、`settings`。两个集合设为「仅管理员可读写」，或自定义规则 `{"read":false,"write":false}`。网页通过已登录身份调用云函数，不直接访问数据库，故此设置不会阻止工作台。云函数必须使用环境内的服务端权限，内部再次校验 ownerId。
+本环境没有文档数据库，持久化使用 PostgreSQL。表 `projects` 由 `src/pg-repo.js` 使用，列为 `id`(主键)、`owner_id`、`revision`、`stage`、`title`、`updated_at`、`data`(jsonb)、`schema_version`。云函数凭 client_credentials 令牌经 `/v1/rdb/rest` 网关访问，映射到 PostgREST `anon` 角色，故需对 `public.projects` 授予 `anon` 的 SELECT/INSERT/UPDATE/DELETE；该角色只能由持有服务端令牌的云函数到达，未带令牌的网关请求返回 401。网页不直接访问数据库，全部经云函数并二次校验 ownerId。
 
-数据库无需提前导入空项目或初始化记录。`settings` 保留，当前尚无配置编辑界面。
+数据库无需提前导入空项目。`settings` 尚未接入配置界面，暂不建表。
 
 ## 2. 身份认证
 
