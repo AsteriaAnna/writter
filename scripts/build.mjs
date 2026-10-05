@@ -1,0 +1,14 @@
+import {build} from 'esbuild';
+import {mkdir,cp,writeFile,rm} from 'node:fs/promises';
+await mkdir('public/vendor',{recursive:true});
+await build({entryPoints:['src/cloud-sdk.js'],outfile:'public/vendor/cloudbase.js',bundle:true,format:'esm',platform:'browser',target:['es2022'],minify:true});
+await rm('dist',{recursive:true,force:true});
+await mkdir('dist/hosting',{recursive:true});
+await cp('public','dist/hosting',{recursive:true});
+await cp('src/domain.js','dist/hosting/domain.js');
+await writeFile('dist/hosting/config.js',`export const config = ${JSON.stringify({mode:'cloud',env:'writter-dev-d0g7h1prq4ce60665',region:'ap-shanghai',functionName:'writter-api'},null,2)};\n`);
+await mkdir('dist/writter-api',{recursive:true});
+await build({entryPoints:['cloudfunctions/writter-api/entry.js'],outfile:'dist/writter-api/index.js',bundle:true,format:'cjs',platform:'node',target:['node18'],packages:'external'});
+await writeFile('dist/writter-api/package.json',JSON.stringify({name:'writter-api',version:'0.2.0',private:true,main:'index.js',dependencies:{'@cloudbase/node-sdk':'3.18.3'}},null,2));
+await writeFile('dist/writter-api/database.rules.json',JSON.stringify({read:false,write:false},null,2));
+console.log('Built dist/hosting and dist/writter-api; event function handler: index.main');

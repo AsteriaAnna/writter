@@ -1,1 +1,24 @@
-{"name":"writter","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"node server.mjs","start":"node server.mjs","test":"node --test","check":"node --check server.mjs && node --check public/app.js && node --check src/domain.js"},"engines":{"node":">=22"}}
+{
+  "name": "writter",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check public/app.js && node --check src/domain.js && node --check src/cloud-api.js && node --check public/cloud-client.js",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@cloudbase/js-sdk": "3.10.1"
+  },
+  "devDependencies": {
+    "@cloudbase/node-sdk": "3.18.3",
+    "esbuild": "0.25.12",
+    "happy-dom": "20.8.4"
+  }
+}

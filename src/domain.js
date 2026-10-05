@@ -5,8 +5,8 @@ export function normalizeFeed(data) {
   if (!Array.isArray(data.items)) throw new Error('上游 JSON 缺少 items 数组');
   return data.items.filter(x => x.id && x.title && safeUrl(x.url)).map(x => ({provider:'ai-news-aggregator',externalId:x.id,title:x.title_zh || x.title,summary:'',originalUrl:safeUrl(x.url),sourceName:x.source || x.site_name || '未知来源',publishedAt:x.published_at || x.first_seen_at,category:x.site_id || '其他'}));
 }
-export function createProject(candidate) {
-  return {id:crypto.randomUUID(),revision:0,stage:'selected',candidate:structuredClone(candidate),evidence:{sources:[],notes:'',confirmed:false},plan:{title:candidate.title,angle:'',outline:''},draft:{markdown:''},visual:{assets:[]},output:{html:''},stale:{draft:true,visual:true,render:true},history:{plan:[],draft:[]},updatedAt:new Date().toISOString()};
+export function createProject(candidate,id=globalThis.crypto.randomUUID()) {
+  return {id,revision:0,stage:'selected',candidate:structuredClone(candidate),evidence:{sources:[],notes:'',confirmed:false},plan:{title:candidate.title,angle:'',outline:''},draft:{markdown:''},visual:{assets:[]},output:{html:''},stale:{draft:true,visual:true,render:true},history:{plan:[],draft:[]},updatedAt:new Date().toISOString()};
 }
 export function revise(project,module,value) {
   const p = structuredClone(project);
@@ -27,4 +27,34 @@ export function approvePlan(p) {
 export function renderArticle(title,markdown) {
   const body = markdown.split(/\n\s*\n/).filter(Boolean).map(block => block.startsWith('## ') ? `<h2 style="font-size:22px;color:#245746;margin:32px 0 16px">${escape(block.slice(3))}</h2>` : `<p style="margin:18px 0;line-height:1.9;font-size:16px">${escape(block).replace(/\n/g,'<br>')}</p>`).join('');
   return `<article style="max-width:680px;margin:auto;padding:32px 24px;color:#24372e;background:#fff;font-family:system-ui,sans-serif"><h1 style="font-size:30px;line-height:1.4">${escape(title)}</h1>${body}</article>`;
+}
+
+export function applyProjectAction(project,action,payload={}) {
+  let p=structuredClone(project);
+  if(action==='save_plan' || action==='approve_plan') {
+    p=revise(p,'evidence',payload.evidence);
+    p=revise(p,'plan',payload.plan);
+    if(action==='approve_plan')p=approvePlan(p);
+  } else if(action==='save_draft' || action==='render') {
+    const ready=p.stage==='plan_ready'||(!p.stale.draft&&['draft_ready','preview_ready'].includes(p.stage));
+    if(!ready)throw new Error('策划已过期，请先重新确认');
+    if(!payload.markdown?.trim())throw new Error('请先填写正文');
+    p=revise(p,'draft',{markdown:payload.markdown});
+    p.stale.draft=false;p.stage='draft_ready';
+    if(action==='render') {
+      if(payload.audited!==true)throw new Error('请先复查当前正文的事实与来源');
+      p.output.html=renderArticle(p.plan.title,p.draft.markdown);
+      p.stale.render=false;p.stage='preview_ready';
+      p.draft.auditedAt=new Date().toISOString();
+    }
+  } else if(action==='restore_plan' || action==='restore_draft') {
+    const module=action==='restore_plan'?'plan':'draft';
+    const previous=p.history[module].at(-1);
+    if(!previous)throw new Error('没有可恢复的版本');
+    p=revise(p,module,previous);
+  } else throw new Error('未知操作');
+  // Exactly one persisted revision per command, including approval and rendering.
+  p.revision=project.revision+1;
+  p.updatedAt=new Date().toISOString();
+  return p;
 }
