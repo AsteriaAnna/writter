@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "writter-dev-d0g7h1prq4ce60665",
+  "functionRoot": "dist/writter-api",
+  "functions": [
+    {
+      "name": "writter-api",
+      "timeout": 30,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "memorySize": 256,
+      "installDependency": true,
+      "envVariables": {
+        "WRITTER_ALLOWED_UIDS": "2107134978465726464"
+      }
+    }
+  ]
+}

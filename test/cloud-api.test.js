@@ -7,8 +7,13 @@ const plan={title:'Title',angle:'Angle',outline:'Outline'};
 const evidence={sources:['https://example.com'],notes:'Evidence',confirmed:true};
 function setup(){
  const records=new Map();let identity={uid:'owner-a',isAnonymous:false};
- const db={collection(name){assert.equal(name,'projects');return {doc(id){return {id,async get(){const p=records.get(id);return {data:p?[structuredClone(p)]:[]};}};},where(filter){let offset=0,limit=100;return {skip(v){offset=v;return this;},limit(v){limit=v;return this;},async get(){return {data:[...records.values()].filter(x=>x.ownerId===filter.ownerId).slice(offset,offset+limit).map(x=>structuredClone(x))};}};} };},async startTransaction(){let write,readRevision,readId;return {async get(ref){readId=ref.id;const old=records.get(ref.id);readRevision=old?.revision;return {data:()=>old?structuredClone(old):null};},async set(ref,data){assert.ok(!Object.hasOwn(data,'_id'),'SDK forbids _id in set payload');write={id:ref.id,data:structuredClone(data)};},async commit(){if(records.get(readId)?.revision!==readRevision)throw Object.assign(new Error('write conflict'),{code:'DATABASE_TRANSACTION_CONFLICT'});if(write)records.set(write.id,{...write.data,_id:write.id});},async rollback(){}};}};
- const handler=makeHandler({db,getIdentity:async()=>identity,allowedUids:['owner-a','owner-b'],loadFeed:async window=>({window,items:[]})});
+ const repo={
+  async list(uid,offset){const items=[...records.values()].filter(r=>r.ownerId===uid).slice(offset,offset+100).map(r=>({id:r.id,stage:r.stage,revision:r.revision,updatedAt:r.updatedAt,plan:{title:r.plan.title},partial:true}));return {items,nextOffset:items.length===100?offset+100:null};},
+  async get(id){const r=records.get(id);return r?structuredClone(r):null;},
+  async create(uid,id,project){const existing=records.get(id);if(existing)return structuredClone(existing);const r={ownerId:uid,...structuredClone(project)};records.set(id,r);return structuredClone(r);},
+  async mutate(id,uid,expectedRevision,next){const r=records.get(id);if(!r||r.ownerId!==uid||r.revision!==expectedRevision)return null;const saved={ownerId:uid,...structuredClone(next)};records.set(id,saved);return structuredClone(saved);},
+ };
+ const handler=makeHandler({repo,getIdentity:async()=>identity,allowedUids:['owner-a','owner-b'],loadFeed:async window=>({window,items:[]})});
  return {handler,records,setIdentity:v=>identity=v};
 }
 test('reject missing or anonymous identity, ignore caller supplied UID',async()=>{const f=setup();f.setIdentity({uid:'',isAnonymous:false});assert.equal((await f.handler({action:'projects.list',uid:'owner-a'})).error.code,'UNAUTHENTICATED');f.setIdentity({uid:'owner-a',isAnonymous:true});assert.equal((await f.handler({action:'feed'})).error.code,'UNAUTHENTICATED');});
