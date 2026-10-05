@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://writter.local/schemas/project",
+  "title": "Writter Project v0.1",
+  "type": "object",
+  "required": ["id", "stage", "revision", "candidate", "evidence", "plan", "draft", "stale", "history"],
+  "properties": {
+    "id": {"type": "string"},
+    "revision": {"type": "integer", "minimum": 0},
+    "stage": {"enum": ["selected", "planning", "plan_ready", "draft_ready", "preview_ready"]},
+    "candidate": {
+      "type": "object",
+      "required": ["provider", "externalId", "title", "originalUrl", "sourceName"],
+      "properties": {"provider": {"enum": ["manual", "ai-news-aggregator", "aihot"]}, "externalId": {"type": "string"}, "title": {"type": "string"}, "originalUrl": {"type": "string"}, "sourceName": {"type": "string"}, "publishedAt": {"type": ["string", "null"]}}
+    },
+    "evidence": {"type": "object", "required": ["sources", "notes", "confirmed"], "properties": {"sources": {"type": "array", "items": {"type": "string", "format": "uri"}}, "notes": {"type": "string"}, "confirmed": {"type": "boolean"}}},
+    "plan": {"type": "object", "required": ["title", "angle", "outline"], "properties": {"title": {"type": "string"}, "angle": {"type": "string"}, "outline": {"type": "string"}}},
+    "draft": {"type": "object", "required": ["markdown"], "properties": {"markdown": {"type": "string"}, "auditedAt": {"type": "string"}}},
+    "stale": {"type": "object", "required": ["draft", "visual", "render"], "properties": {"draft": {"type": "boolean"}, "visual": {"type": "boolean"}, "render": {"type": "boolean"}}},
+    "history": {"type": "object", "properties": {"plan": {"type": "array", "maxItems": 3}, "draft": {"type": "array", "maxItems": 3}}}
+  }
+}

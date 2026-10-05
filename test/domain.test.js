@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createProject,revise,approvePlan,normalizeFeed,renderArticle,safeUrl} from '../src/domain.js';
+const candidate={title:'测试',provider:'manual',externalId:'1'};
+test('upstream changes invalidate all downstream outputs and preserve history',()=>{let p=createProject(candidate);p.stale={draft:false,visual:false,render:false};p=revise(p,'plan',{title:'新标题',angle:'角度',outline:'结构'});assert.deepEqual(p.stale,{draft:true,visual:true,render:true});assert.equal(p.history.plan.length,1);assert.equal(p.stage,'planning');});
+test('plan approval requires explicit evidence and complete structure',()=>{let p=createProject(candidate);assert.throws(()=>approvePlan(p));p.evidence={confirmed:true,sources:['https://example.com']};p.plan={title:'a',angle:'b',outline:'c'};assert.equal(approvePlan(p).stage,'plan_ready');});
+test('feed schema uses actual upstream fields and rejects dangerous URLs',()=>{const items=normalizeFeed({items:[{id:'1',title:'Title',url:'https://example.com',source:'Official',published_at:'date'},{id:'2',title:'bad',url:'javascript:alert(1)'}]});assert.equal(items.length,1);assert.equal(items[0].sourceName,'Official');assert.equal(items[0].publishedAt,'date');assert.equal(safeUrl('javascript:alert(1)'),'');});
+test('renderer escapes untrusted input and renders paragraph boundaries',()=>{const html=renderArticle('<script>','## 标题\n\n<script>alert(1)</script>');assert.ok(!html.includes('<script>'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(html.includes('<h2'));});
+test('history is bounded and no-op saves preserve approved stage',()=>{let p=createProject(candidate);for(let i=0;i<6;i++)p=revise(p,'plan',{title:String(i),angle:'a',outline:'b'});assert.equal(p.history.plan.length,3);p.stage='plan_ready';assert.equal(revise(p,'plan',p.plan).stage,'plan_ready');});
