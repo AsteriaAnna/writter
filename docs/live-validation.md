@@ -49,19 +49,20 @@
 **修改位置**（`src/ai.js`）：
 
 1. 新增 `outlineText()`（[src/ai.js:4-15](src/ai.js#L4-L15)）：把 `outline` 的字符串 / 数组（字符串列表或对象列表）统一归一化为字符串，再进入长度校验。
-2. 模型**默认**为 `deepseek-v4-pro`，保留环境变量 `WRITTER_AI_MODEL` 覆盖（[src/ai.js:30](src/ai.js#L30) 附近）。**结构兼容与模型质量分开判断**：`outline` 归一化是与模型无关的结构修复；`deepseek-v4-pro` 作为默认仅是稳定性偏好，**不据此认定 `deepseek-flash` 必须淘汰**——flash 在结构修复后的可靠性尚未单独复验，保留为可切换项。
+2. 模型**默认**为 `deepseek-v4-pro`，保留环境变量 `WRITTER_AI_MODEL` 覆盖。**结构兼容与模型质量分开判断**：`outline` 归一化是与模型无关的结构修复；`deepseek-v4-pro` 作为默认仅是稳定性偏好，**不据此认定 `deepseek-flash` 必须淘汰**——flash 在结构修复后的可靠性尚未单独复验，保留为可切换项。
+3. **证据约束过窄（本轮新增修复）**：策划的事实引用（`validatePlan` 的 `doc.text.includes(quote)`）与复查的正文定位（audit 的 `markdown.includes(quote)`）都用精确子串匹配，但抽取后的原文仍含 `&emsp;` 等 HTML 实体、模型又会改写全/半角引号与空白，合法引文会被误判为「无法定位」。新增 `normalizeEvidence()`（解码实体、统一引号、压缩空白）用于这两处匹配；并在 `source-reader.js` 的 `extractText` 补全实体解码。
 
-**关联影响**：仅影响 AI 输出校验与模型选择；未触碰鉴权、数据库 schema、乐观锁、来源读取 SSRF 防护、渲染转义等其它逻辑。30 项单元测试全部通过。
+**关联影响**：仅影响 AI 输出校验、模型选择与证据逐字匹配；未触碰鉴权、数据库 schema、乐观锁、来源读取 SSRF 防护、渲染转义等其它逻辑。32 项单元测试全部通过；用实际文章复验 6/6 条 claim 通过、跨 `&emsp;` 引文可定位。
 
 ---
 
 ## 4. 修复后的测试与部署
 
-- **单元测试**：`npm test` 30/30 通过（含「plan approval requires explicit evidence and complete structure」「renderer escapes untrusted input」等与本次改动相关的用例）。
+- **单元测试**：`npm test` 32/32 通过（含 outline 归一化、证据逐字匹配容错、审批快照、渲染转义等用例）。
 - **语法检查**：`npm run check` 通过。
-- **端到端**：以新华网真实来源走完 9 步主流程（见第 2 节）。
+- **端到端**：以新华网真实来源走完 9 步主流程（见第 2 节）；证据匹配容错另以实际文章复验 6/6 条 claim 通过。
 - **部署**：`npm run build` → `tcb fn code update writter-api --dir dist/writter-api`（仅更新代码，未改动环境变量，`WRITTER_AI_KEY` 原样保留）。
-- **Git 提交**：见仓库提交记录（本文件与 `src/ai.js`、`docs/artifacts/` 一并提交）。
+- **Git 提交**：`a3ab1df`（outline 归一化 + 默认模型 v4-pro）、`f0ef24a`（证据逐字匹配容错）；均已推送 origin/main。
 
 ---
 
