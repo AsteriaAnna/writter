@@ -23,3 +23,10 @@ test('review must locate real prose and inventing a reference URL fails before r
  let count=0;await assert.rejects(generateInitialDraft({brief,ai:{configured:true,json:async()=>++count===1?draft:{summary:'需修改',issues:[{category:'facts',severity:'blocking',quote:'正文不存在的句子',reason:'扩大事实',suggestion:'收窄'}]}}}),/无法定位/);
  await assert.rejects(generateInitialDraft({brief,ai:{configured:true,json:async()=>({...draft,markdown:'[资料](https://invented.example/)'})}}),/资料之外/);
 });
+test('bad auxiliary coverage does not lose usable prose or bypass independent review',async()=>{
+ let calls=0,saved;const bad={...draft,coverage:[{section:'opening',sourceIds:['invented']}]};
+ const result=await generateInitialDraft({brief,onDraft:r=>{saved=r},ai:{configured:true,json:async()=>++calls===1?bad:{summary:'等待用户判断成品',issues:[]}}});
+ assert.equal(calls,2);assert.equal(saved.draft.markdown,draft.markdown);
+ assert.deepEqual(result.draft.coverage,[]);assert.equal(result.draft.metadataWarnings.length,1);
+ assert.equal(result.qualityStatus,'human_review_pending');
+});

@@ -1,5 +1,5 @@
 // Application writing rules, shared by API calls. This is not a Codex skill.
-export const writingPolicyVersion='公众号初稿-v1';
+export const writingPolicyVersion='公众号初稿-v1.1';
 const types={event:'事件介绍',explain:'解释分析',method:'方法分享'};
 export function validateWritingBrief(brief){
  const required=(v,label,max=4000)=>{if(typeof v!=='string'||!v.trim()||v.length>max)throw Error(label+'缺失或过长');};
@@ -45,16 +45,19 @@ export const initialDraftPrompt=common+`
 status:"draft_ready" 时输出可编辑 Markdown，不含 HTML，不重复主标题，不强制用“引言/结语”等模板标题。
 只允许给定资料 URL；不自行添加图片，图片属于后续发布准备。
 输出 JSON：{status:"draft_ready"|"needs_input",markdown:string,gaps:[string],coverage:[{section:number,sourceIds:[string]}]}。
-coverage 只说明写作覆盖，不能用来证明质量。`;
+coverage.section 为从 1 开始的整数，与 sections 顺序对应；sourceIds 只能使用 documents.id。coverage 只说明写作覆盖，不能用来证明质量。`;
 export const initialReviewPrompt=common+`
 任务：独立检查初稿，不因初稿给了 coverage 或有来源就判为通过。
+不要为凑问题制造错误：数学等价表达、合理意译与文风偏好不属于事实错误。判断倍数时核对比较主体和公式；含混的“少几倍”不能作为更精确的强制改法。
+没有读到第三方验证不能写成“没有第三方验证”；没有读到资料也不能据此证明全网不存在。风格偏好标 warning，不将可选过渡句当成严重结构缺陷。
 检查事实：书名、产品名、人名、数字、时间、范围与不确定性是否忠实于给定资料，引用是否支持完整语义。
 检查结构：文章是否回答读者问题，每部分是否落实确认要点，承接是否存在，结尾是否兑现开篇。
 检查文字：是否具体、通顺，是否有重复、套话、无必要术语或强行升华。
 检查意图：是否符合文章类型，是否替用户编造立场、经历、偏好，是否改变确认大纲。
 输出 JSON：{summary:string,issues:[{category:"facts"|"structure"|"writing"|"intent",severity:"blocking"|"warning",quote:string,reason:string,suggestion:string}]}。
 quote 必须逐字来自正文。缺失段落等问题引用正文中最相关的现存句子，并在 reason 说明缺失。
-重大事实或主线问题为 blocking；局部措辞为 warning。提出具体修改动作，不用泛泛免责声明代替审校。`;
+重大事实或主线问题为 blocking；必须说明具体错误命题及相应来源冲突或超出证据之处。缺少可选团队背景、未展开次要细节、未列出所有比较对象，只可作为结构/文字建议，不是事实错误，不能阻断。
+局部措辞为 warning。替换同义词、把“不是X而是Y”改成“X而非Y”不算实质改进；指出真实的重复或信息问题。提出具体修改动作，不用泛泛免责声明代替审校。`;
 export async function generateInitialDraft({ai,brief,onDraft}){
  const confirmedBrief=validateWritingBrief(brief);
  if(!ai?.configured)throw Error('AI 未配置：请在已有安全模型配置的环境执行');
@@ -68,7 +71,9 @@ export async function generateInitialDraft({ai,brief,onDraft}){
  if(!draft.markdown.trim()||draft.markdown.length>60000||/!\[/.test(draft.markdown))throw Error('正文为空、过长或包含未生成图片');
  const allowed=new Set(confirmedBrief.documents.map(d=>d.url));
  for(const x of draft.markdown.matchAll(/\[[^\]]*\]\(([^)]+)\)/g))if(!allowed.has(x[1]))throw Error('正文包含资料之外的链接');
- if(!Array.isArray(draft.coverage)||draft.coverage.some(x=>!Number.isInteger(x.section)||x.section<1||x.section>confirmedBrief.sections.length||!Array.isArray(x.sourceIds)||x.sourceIds.some(id=>!confirmedBrief.documents.some(d=>d.id===id))))throw Error('覆盖信息引用未知段落或资料');
+ if(!Array.isArray(draft.coverage)||draft.coverage.some(x=>!Number.isInteger(x.section)||x.section<1||x.section>confirmedBrief.sections.length||!Array.isArray(x.sourceIds)||x.sourceIds.some(id=>!confirmedBrief.documents.some(d=>d.id===id)))){
+  draft.coverage=[];draft.metadataWarnings=['模型段落覆盖信息格式无效，已移除；正文覆盖情况须通过审校与用户检查确认'];
+ }
  // Preserve the draft before a second paid call; review failure must not lose it.
  await onDraft?.({policyVersion:writingPolicyVersion,draft,qualityStatus:'unreviewed'});
  const review=await ai.json(initialReviewPrompt,{...input,markdown:draft.markdown});
