@@ -68,3 +68,15 @@ test('render refuses a stale audit or a blocking fact issue',async()=>{
  f.records.get(p.id).workflow.audit={checkedMarkdown:'Body',issues:[{severity:'blocking',text:'Unsupported number'}]};
  assert.equal((await f.handler(event)).error.code,'INVALID_STATE');assert.equal(f.records.get(p.id).output.html,'');
 });
+
+test('draft revision validates and persists user instructions before model execution',async()=>{
+ const f=setup({aiConfigured:true,runWorkflow:async()=>analysis});
+ let p=(await f.handler({action:'projects.create',candidate})).data;
+ const stored=f.records.get(p.id);stored.plan=plan;stored.workflow.documents=analysis.documents;stored.workflow.approval={plan,documents:analysis.documents,claims:analysis.claims};stored.stage='plan_ready';
+ const start=instruction=>f.handler({action:'tasks.start',id:p.id,expectedRevision:p.revision,kind:'draft',input:{instruction}});
+ assert.equal((await start('修改开篇')).error.code,'INVALID_STATE');
+ stored.draft.markdown='Current body';
+ assert.equal((await start('')).error.code,'INVALID_INPUT');
+ assert.equal((await start('x'.repeat(4001))).error.code,'INVALID_INPUT');
+ const result=await start('说明投入不等于效果');assert.equal(result.ok,true);assert.equal(result.data.workflow.task.input.instruction,'说明投入不等于效果');
+});

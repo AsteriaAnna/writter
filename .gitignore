@@ -6,3 +6,6 @@ coverage/
 dist/
 public/vendor/
 out/
+
+# Real-model editorial comparisons can contain user content.
+artifacts/editorial-eval/
