@@ -72,6 +72,10 @@ export function makeHandler({repo,getIdentity,allowedUids,loadFeed,runWorkflow,a
             input.urls=(event.input?.urls||[]).slice(0,4).map(x=>{if(!safeUrl(text(x,2048)))fail('INVALID_INPUT','来源链接错误');return x;});
           }
           if(event.kind==='adjust')input.instruction=text(event.input?.instruction,4000,true);
+          if(event.kind==='draft'&&event.input?.instruction!==undefined){
+            input.instruction=text(event.input.instruction,4000,true);
+            if(!p.draft.markdown.trim())fail('INVALID_STATE','请先生成正文，再提出修改意见');
+          }
           try{p=startTask(p,event.kind,randomUUID());}catch(err){fail('INVALID_STATE',err.message);}
           p.workflow.task.input=input;
           const saved=await repo.mutate(id,uid,old.revision,p);
@@ -130,4 +134,3 @@ export function makeHandler({repo,getIdentity,allowedUids,loadFeed,runWorkflow,a
     }
   };
 }
-

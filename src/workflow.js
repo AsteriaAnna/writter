@@ -29,7 +29,7 @@ export function completeTask(project,result){
   p.history.draft=[...p.history.draft,structuredClone(p.draft)].slice(-3);
   p.draft={markdown:result.markdown};p.visual={assets:[],suggestions:result.visuals};p.workflow.audit=null;p.stale={draft:false,visual:true,render:true};p.stage='draft_ready';
  }else{
-  p.workflow.audit={issues:result.issues,checkedMarkdown:p.draft.markdown,checkedAt:new Date().toISOString()};p.stale.render=true;
+  p.workflow.audit={issues:result.issues,...(result.review?{review:result.review}:{}),checkedMarkdown:p.draft.markdown,checkedAt:new Date().toISOString()};p.stale.render=true;
  }
  p.workflow.task={...p.workflow.task,status:'succeeded',finishedAt:Date.now()};p.revision++;p.updatedAt=new Date().toISOString();return p;
 }
@@ -47,7 +47,7 @@ export function afterManualChange(before,after,action){
  if(['save_draft','restore_draft'].includes(action)&&before.draft.markdown!==after.draft.markdown)p.workflow.audit=null;
  if(action==='render'){
   if(!p.workflow.audit||p.workflow.audit.checkedMarkdown!==p.draft.markdown)throw Error('请先复查当前正文');
-  if(p.workflow.audit.issues.some(x=>x.severity==='blocking'))throw Error('请先修正复查发现的事实问题');
+  if(p.workflow.audit.issues.some(x=>x.severity==='blocking'))throw Error('请先修正复查发现的事实或文章主线问题');
   p.output={html:renderArticle(p.plan.title,p.draft.markdown),template:'editorial-basic-v1'};
  }
  return p;
