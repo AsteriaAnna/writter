@@ -11,8 +11,8 @@
 
 | 维度 | 结论 | 依据 |
 |---|---|---|
-| **模型服务连通** | ✅ 通过 | DeepSeek API 从云函数内可连通，`deepseek-v4-pro` 4 次调用（analyze/adjust/draft/audit）全部返回合法结构化 JSON。 |
-| **功能真实跑通** | ✅ 通过（附边界） | 9 步主流程端到端跑通；边界：登录依赖可达网关的网络、来源读取仅新华网成功。 |
+| **模型服务连通** | ✅ 通过 | DeepSeek API 从云函数内可连通；`deepseek-v4-pro` 与 `deepseek-flash` 均跑通（flash 修复后 9 步端到端复验全部 succeeded）。 |
+| **功能真实跑通** | ✅ 通过（附边界） | 9 步主流程端到端跑通（pro、flash 各一次）；边界：登录依赖可达网关的网络、来源读取仅新华网成功。 |
 | **内容质量通过** | ✅ 基本通过（1 处小瑕疵） | 证据/逐字引用/单一来源标注/无泄漏均达标；正文引用链接文本为「来源0」而非「新华网」，属可读性小瑕疵。 |
 | **UI 体验通过** | ⚠️ 未测试 | 本次为接口级验收，未做浏览器内全量 UI 走查（前端逐阶段点击、渲染、预览展示）。 |
 
@@ -49,7 +49,7 @@
 **修改位置**（`src/ai.js`）：
 
 1. 新增 `outlineText()`（[src/ai.js:4-15](src/ai.js#L4-L15)）：把 `outline` 的字符串 / 数组（字符串列表或对象列表）统一归一化为字符串，再进入长度校验。
-2. 模型**默认**为 `deepseek-v4-pro`，保留环境变量 `WRITTER_AI_MODEL` 覆盖。**结构兼容与模型质量分开判断**：`outline` 归一化是与模型无关的结构修复；`deepseek-v4-pro` 作为默认仅是稳定性偏好，**不据此认定 `deepseek-flash` 必须淘汰**——flash 在结构修复后的可靠性尚未单独复验，保留为可切换项。
+2. 模型**默认**为 `deepseek-v4-pro`，保留环境变量 `WRITTER_AI_MODEL` 覆盖。**结构兼容与模型质量分开判断**：`outline` 归一化是与模型无关的结构修复；`deepseek-v4-pro` 作为默认仅是稳定性偏好，**不据此认定 `deepseek-flash` 必须淘汰**——flash 在结构修复后已端到端复验通过（见 §7），保留为可切换项。
 3. **证据约束过窄（本轮新增修复）**：策划的事实引用（`validatePlan` 的 `doc.text.includes(quote)`）与复查的正文定位（audit 的 `markdown.includes(quote)`）都用精确子串匹配，但抽取后的原文仍含 `&emsp;` 等 HTML 实体、模型又会改写全/半角引号与空白，合法引文会被误判为「无法定位」。新增 `normalizeEvidence()`（解码实体、统一引号、压缩空白）用于这两处匹配；并在 `source-reader.js` 的 `extractText` 补全实体解码。
 
 **关联影响**：仅影响 AI 输出校验、模型选择与证据逐字匹配；未触碰鉴权、数据库 schema、乐观锁、来源读取 SSRF 防护、渲染转义等其它逻辑。32 项单元测试全部通过；用实际文章复验 6/6 条 claim 通过、跨 `&emsp;` 引文可定位。
@@ -61,7 +61,7 @@
 - **单元测试**：`npm test` 32/32 通过（含 outline 归一化、证据逐字匹配容错、审批快照、渲染转义等用例）。
 - **语法检查**：`npm run check` 通过。
 - **端到端**：以新华网真实来源走完 9 步主流程（见第 2 节）；证据匹配容错另以实际文章复验 6/6 条 claim 通过。
-- **部署**：`npm run build` → `tcb fn code update writter-api --dir dist/writter-api`（仅更新代码，未改动环境变量，`WRITTER_AI_KEY` 原样保留）。
+- **部署**：`npm run build` → `tcb fn code update writter-api --dir dist/writter-api`（仅更新代码，未改动环境变量，`WRITTER_AI_KEY` 原样保留）。证据约束修复后已再次 `code update` 部署，当前线上代码含全部三项修复（outline 归一化 + 默认 pro 可被环境变量覆盖 + `normalizeEvidence` 证据容错）；因环境变量 `WRITTER_AI_MODEL` 仍为 `deepseek-flash`，**当前线上函数运行的是 flash**，其端到端复验待完成（见 §7）。
 - **Git 提交**：`a3ab1df`（outline 归一化 + 默认模型 v4-pro）、`f0ef24a`（证据逐字匹配容错）；均已推送 origin/main。
 
 ---
@@ -77,13 +77,15 @@
 | `docs/artifacts/audit.md` | 正文复查结果（0 问题） |
 | `docs/artifacts/render.html` | 排版后 HTML |
 
-测试项目 ID：`b3243770379d054cb8dba49d8d722da81cd551b782658159f097bb5981c922c8`（标题「验收测试丨新华网流程走查」）。
+测试项目 ID：`b3243770379d054cb8dba49d8d722da81cd551b782658159f097bb5981c922c8`（标题「验收测试丨新华网流程走查」，pro）。
+
+flash 复验项目 ID：`78329dc99f13c00f8de071710a3050d1e1b52839d7254e8d559cde978c82bd30`（标题「验收测试丨新华网复验」，flash）。
 
 ---
 
 ## 6. 内容质量观察项（非功能缺陷）
 
-1. 正文内引用链接文本为「来源0」而非「新华网」，可读性欠佳，建议后续在 prompt 中要求模型用来源名称作为链接文本。
+1. 正文内引用链接文本被模型逐字照抄成占位符「来源名称」而非实际来源名「新华网」（draft prompt 里 `[来源名称](URL)` 的占位符被当成了最终文本）。可读性欠佳，建议后续把 draft prompt 改为「用来源的实际名称作为链接文本，如 [新华网](URL)，不要照抄『来源名称』占位符」。
 2. 单一来源（新华网）是模型自身已标注的核验警告；正式发布前建议补充第二独立信源。
 
 ---
@@ -96,5 +98,6 @@
 - 远程浏览器登录需在可访问云开发网关的网络下进行（环境问题，非代码）。
 
 **用户需要做的操作（仅列必要项）**：
-- 控制台 `WRITTER_AI_MODEL` 现为 `deepseek-flash`。要让代码默认的 `deepseek-v4-pro` 在**下次部署后**真正生效，需在控制台将其改为 `deepseek-v4-pro` 或删除该变量。CLI 无法安全代改：`tcb config update fn` 会按 `cloudbaserc.json` 整体覆盖环境变量，从而清掉 `WRITTER_AI_KEY`。当前已部署函数仍为 v4-pro 硬编码版本、功能正常，本次未重新部署以免回落到 flash。
+- 控制台 `WRITTER_AI_MODEL` 现为 `deepseek-flash`。要让代码默认的 `deepseek-v4-pro` 生效，需在控制台将其改为 `deepseek-v4-pro` 或删除该变量。CLI 无法安全代改：`tcb config update fn` 会按 `cloudbaserc.json` 整体覆盖环境变量，从而清掉 `WRITTER_AI_KEY`。已按你的要求重新部署（`code update` 仅更新代码、未动环境变量），当前线上函数运行 `deepseek-flash`（含全部修复）。
+- **flash 端到端复验（已完成 ✅）**：以管理员口令登录走完 9 步主流程，`deepseek-flash` 在 outline 归一化 + `normalizeEvidence` 修复后**全部 succeeded**：12 条 claim 全部带 `sourceId` 且逐字 `quote` 定位成功、audit 0 问题、render→preview_ready（HTML 5765 字符）。口令经临时文件读取、用完即删，未入命令行/仓库。项目 ID `78329dc99f13c00f8de071710a3050d1e1b52839d7254e8d559cde978c82bd30`。**结论：flash 不必淘汰**，保留为可切换项；pro 仍为默认（稳定性偏好）。
 - 其余无必须操作：测试项目与 `%TEMP%\waccept` 临时文件按你的要求保留作复验样例，未清理。
