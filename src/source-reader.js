@@ -7,7 +7,7 @@ export function isPublicAddress(ip){
  return isIP(ip)===6&&/^[23][0-9a-f]{0,3}:/i.test(ip)&&!/^2001:(db8|0):/i.test(ip)&&!/^2002:/i.test(ip);
 }
 export function extractText(html){
- return html.replace(/<(script|style|nav|footer|header)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/\s+/g,' ').trim();
+ return html.replace(/<(script|style|nav|footer|header)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;|&emsp;|&ensp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;|&ldquo;|&rdquo;/gi,'"').replace(/&#39;|&apos;|&lsquo;|&rsquo;/gi,"'").replace(/&mdash;|&ndash;/gi,'—').replace(/&hellip;/gi,'…').replace(/\s+/g,' ').trim();
 }
 async function read(url,redirects=0,signal){
  if(signal?.aborted)throw Error('来源读取超时');

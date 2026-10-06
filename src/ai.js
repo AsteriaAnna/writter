@@ -13,13 +13,23 @@ function outlineText(x){
  }).filter(s=>s&&s.trim()).join('\n');
  return '';
 }
+// 归一化“逐字定位”的文本：解码残留 HTML 实体、统一中英文引号、压缩空白。用于策划的事实引用与复查的正文定位，避免模型因实体/引号/空白差异被误判为“无法定位”。
+export function normalizeEvidence(s){
+ return String(s??'')
+  .replace(/&emsp;|&ensp;/gi,' ').replace(/&nbsp;|&#160;/gi,' ')
+  .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')
+  .replace(/&quot;/gi,'"').replace(/&ldquo;|&rdquo;/gi,'"').replace(/&lsquo;|&rsquo;|&apos;|&#39;/gi,"'")
+  .replace(/&mdash;|&ndash;/gi,'—').replace(/&hellip;/gi,'…')
+  .replace(/[“”「」『』]/g,'"').replace(/[‘’]/g,"'")
+  .normalize('NFC').replace(/\s+/g,' ').trim();
+}
 export function validatePlan(value,documents){
  if(!value||!Array.isArray(value.claims)||!Array.isArray(value.warnings))fail('模型输出结构不完整','AI_INVALID_OUTPUT');
  const plan={title:string(value.plan?.title,500),angle:string(value.plan?.angle,20000),outline:string(outlineText(value.plan?.outline),40000)};
  if(value.claims.length>40||value.warnings.length>30)fail('模型输出超出限制','AI_INVALID_OUTPUT');
  const claims=value.claims.map(x=>{
   const doc=documents.find(d=>d.id===x.sourceId),quote=string(x.quote,2000);
-  if(!doc||!doc.text.includes(quote))fail('模型引用无法在原始资料中定位，请重试','AI_INVALID_OUTPUT');
+  if(!doc||!normalizeEvidence(doc.text).includes(normalizeEvidence(quote)))fail('模型引用无法在原始资料中定位，请重试','AI_INVALID_OUTPUT');
   return {text:string(x.text,2000),sourceId:doc.id,quote};
  });
  if(!claims.length)fail('资料不足，未提取到有来源支持的事实','EVIDENCE_UNAVAILABLE');
@@ -74,6 +84,6 @@ export function createWorkflowRunner({ai,readSource}){
   }
   const value=await ai.json('检查文章中的事实、数字、引语与给定来源是否一致，资料以外的事实必须指出。只审查现有来源，不声称进行了新联网查询。输出 {issues:[{severity:"blocking"或"warning",text,quote}]}。quote 必须是正文中逐字存在的待检查句子。',{markdown:p.draft.markdown,documents:p.workflow.approval?.documents||p.workflow.documents});
   if(!Array.isArray(value.issues)||value.issues.length>40)fail('复查输出格式错误','AI_INVALID_OUTPUT');
-  return {issues:value.issues.map(x=>{const quote=string(x.quote,3000);if(!p.draft.markdown.includes(quote)||!['blocking','warning'].includes(x.severity))fail('复查未能定位正文问题','AI_INVALID_OUTPUT');return {severity:x.severity,text:string(x.text,3000),quote};})};
+  return {issues:value.issues.map(x=>{const quote=string(x.quote,3000);if(!normalizeEvidence(p.draft.markdown).includes(normalizeEvidence(quote))||!['blocking','warning'].includes(x.severity))fail('复查未能定位正文问题','AI_INVALID_OUTPUT');return {severity:x.severity,text:string(x.text,3000),quote};})};
  };
 }
