@@ -1,3 +1,5 @@
+import {createAI,createWorkflowRunner} from '../../src/ai.js';
+import {readSource} from '../../src/source-reader.js';
 import cloudbase from '@cloudbase/node-sdk';
 import {makeHandler} from '../../src/cloud-api.js';
 import {feed} from '../../src/feed.js';
@@ -14,5 +16,7 @@ function getRdb() {
 }
 
 export const main=async event=>{
-  return makeHandler({repo:createPgRepo(getRdb()),getIdentity:()=>app.auth().getUserInfo(),allowedUids:(process.env.WRITTER_ALLOWED_UIDS || '').split(',').map(x=>x.trim()).filter(Boolean),loadFeed:feed})(event);
+  const ai=createAI();
+  return makeHandler({repo:createPgRepo(getRdb()),getIdentity:()=>app.auth().getUserInfo(),allowedUids:(process.env.WRITTER_ALLOWED_UIDS || '').split(',').map(x=>x.trim()).filter(Boolean),loadFeed:feed,aiConfigured:ai.configured,runWorkflow:createWorkflowRunner({ai,readSource})})(event);
 };
+

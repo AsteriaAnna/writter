@@ -7,7 +7,7 @@
     "dev": "node server.mjs",
     "start": "node server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check public/app.js && node --check src/domain.js && node --check src/cloud-api.js && node --check public/cloud-client.js",
+    "check": "node --check server.mjs && node --check public/app.js && node --check src/domain.js && node --check src/cloud-api.js && node --check public/cloud-client.js && node --check src/workflow.js && node --check src/ai.js && node --check src/source-reader.js",
     "build": "node scripts/build.mjs"
   },
   "engines": {

@@ -6,9 +6,11 @@ await rm('dist',{recursive:true,force:true});
 await mkdir('dist/hosting',{recursive:true});
 await cp('public','dist/hosting',{recursive:true});
 await cp('src/domain.js','dist/hosting/domain.js');
+await cp('src/workflow.js','dist/hosting/workflow.js');
 await writeFile('dist/hosting/config.js',`export const config = ${JSON.stringify({mode:'cloud',env:'writter-dev-d0g7h1prq4ce60665',region:'ap-shanghai',functionName:'writter-api'},null,2)};\n`);
 await mkdir('dist/writter-api',{recursive:true});
 await build({entryPoints:['cloudfunctions/writter-api/entry.js'],outfile:'dist/writter-api/index.js',bundle:true,format:'cjs',platform:'node',target:['node18'],packages:'external'});
 await writeFile('dist/writter-api/package.json',JSON.stringify({name:'writter-api',version:'0.2.0',private:true,main:'index.js',dependencies:{'@cloudbase/node-sdk':'3.18.3'}},null,2));
 await writeFile('dist/writter-api/database.rules.json',JSON.stringify({read:false,write:false},null,2));
 console.log('Built dist/hosting and dist/writter-api; event function handler: index.main');
+

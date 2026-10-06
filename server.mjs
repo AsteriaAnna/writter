@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {feed} from './src/feed.js';
 export {feed};
 const root = fileURLToPath(new URL('./',import.meta.url));
-const files={'/':'public/index.html','/app.js':'public/app.js','/style.css':'public/style.css','/domain.js':'src/domain.js','/config.js':'public/config.js','/cloud-client.js':'public/cloud-client.js','/vendor/cloudbase.js':'public/vendor/cloudbase.js'};
+const files={'/':'public/index.html','/app.js':'public/app.js','/style.css':'public/style.css','/workflow.js':'src/workflow.js','/domain.js':'src/domain.js','/config.js':'public/config.js','/cloud-client.js':'public/cloud-client.js','/vendor/cloudbase.js':'public/vendor/cloudbase.js'};
 export const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://localhost');
   res.setHeader('X-Content-Type-Options','nosniff');
@@ -18,3 +18,4 @@ export const server=createServer(async(req,res)=>{
   try{res.setHeader('Content-Type',path.endsWith('.js')?'text/javascript':path.endsWith('.css')?'text/css':'text/html; charset=utf-8');res.end(await readFile(root+path));}catch{res.writeHead(500);res.end('Unable to serve file');}
 });
 if(process.argv[1]===fileURLToPath(import.meta.url))server.listen(Number(process.env.PORT || 3000),'0.0.0.0',()=>console.log('Writter: http://localhost:3000'));
+

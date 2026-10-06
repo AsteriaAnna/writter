@@ -5,7 +5,7 @@
   "functions": [
     {
       "name": "writter-api",
-      "timeout": 30,
+      "timeout": 180,
       "runtime": "Nodejs18.15",
       "handler": "index.main",
       "memorySize": 256,
@@ -16,3 +16,4 @@
     }
   ]
 }
+
