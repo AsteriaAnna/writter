@@ -1,0 +1,83 @@
+<div id="writter-discovery">
+  <style>
+    #writter-discovery{--paper:#f4f1e8;--panel:#fffdf7;--ink:#253d35;--muted:#63756c;--green:#245c46;--soft:#e7eee3;--line:#dce2d6;font:15px/1.65 system-ui,sans-serif;color:var(--ink);background:var(--paper);border-radius:16px;overflow:hidden}
+    #writter-discovery *{box-sizing:border-box}
+    #writter-discovery button,#writter-discovery input,#writter-discovery select,#writter-discovery textarea{font:inherit}
+    #writter-discovery button,#writter-discovery a{cursor:pointer}
+    #writter-discovery button:focus-visible,#writter-discovery a:focus-visible,#writter-discovery input:focus-visible,#writter-discovery textarea:focus-visible{outline:3px solid #93b899;outline-offset:3px}
+    #writter-discovery button{color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 13px}
+    #writter-discovery button.main{background:var(--green);color:#fff;border-color:var(--green)}
+    #writter-discovery button:disabled{opacity:.45;cursor:default}
+    #writter-discovery header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 26px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+    #writter-discovery .brand{font:500 23px Georgia,serif;letter-spacing:1px}
+    #writter-discovery .nav{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+    #writter-discovery .nav strong{font-weight:500;color:var(--green)}
+    #writter-discovery .wrap{padding:25px;max-width:1024px;margin:auto}
+    #writter-discovery h1{font-size:27px;font-weight:500;margin:0 0 5px}
+    #writter-discovery h2{font-size:21px;font-weight:500;margin:0 0 12px}
+    #writter-discovery h3{font-size:17px;font-weight:500;margin:8px 0}
+    #writter-discovery p{margin:8px 0}
+    #writter-discovery .sub{color:var(--muted);font-size:13px}
+    #writter-discovery .tools{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 18px;align-items:center}
+    #writter-discovery .tools .active{background:var(--green);color:white;border-color:var(--green)}
+    #writter-discovery input{min-width:0;flex:1;border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:var(--panel);color:var(--ink)}
+    #writter-discovery .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(230px,.8fr);gap:22px;align-items:start}
+    #writter-discovery .cards{display:grid;gap:13px}
+    #writter-discovery article{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:19px}
+    #writter-discovery .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+    #writter-discovery .tag{background:var(--soft);color:var(--green);padding:3px 8px;border-radius:5px}
+    #writter-discovery .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+    #writter-discovery a{color:var(--green);text-underline-offset:3px;overflow-wrap:anywhere}
+    #writter-discovery .aside{background:var(--soft);border-radius:13px;padding:19px}
+    #writter-discovery .picked{margin:0;padding:0;list-style:none}
+    #writter-discovery .picked li{padding:12px 0;border-bottom:1px solid #cfdbcc}
+    #writter-discovery .picked button{margin-top:7px;padding:4px 9px;background:transparent}
+    #writter-discovery .aside .main{margin-top:16px;width:100%}
+    #writter-discovery .back{margin-bottom:18px}
+    #writter-discovery .sources{display:grid;gap:12px;margin:18px 0}
+    #writter-discovery textarea{width:100%;resize:vertical;min-height:90px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--ink)}
+    #writter-discovery .note{border-left:3px solid #93b899;padding-left:12px;color:var(--muted);font-size:13px;margin:17px 0}
+    #writter-discovery [hidden]{display:none!important}
+    #writter-discovery .handoff{display:grid;gap:15px}
+    @media(max-width:650px){#writter-discovery .grid{grid-template-columns:1fr}#writter-discovery .wrap{padding:17px}#writter-discovery header{padding:17px}#writter-discovery input{flex-basis:100%}#writter-discovery h1{font-size:23px}#writter-discovery button{min-height:44px}}
+  </style>
+  <header><div class="brand">writter<span class="sub"> · 写自己的文章</span></div><nav class="nav" aria-label="工作区"><strong>发现选题</strong><span>写作工作台</span><span>发布准备</span></nav></header>
+  <div class="wrap">
+    <section id="wd-list">
+      <h1>今天，想聊点什么？</h1>
+      <div class="sub">2026 年 10 月 6 日研究快照 · 交互原型，非实时数据</div>
+      <div class="tools"><button id="wd-hot" class="active" type="button" aria-pressed="true">当前热点</button><button id="wd-more" type="button" aria-pressed="false">更多资讯</button><input id="wd-search" aria-label="搜索当前视图的样本" placeholder="搜索当前列表"></div>
+      <div class="grid"><div><p class="sub" id="wd-range"></p><div class="cards" id="wd-cards"></div></div><aside class="aside"><h3>选中的题材</h3><div id="wd-picked" aria-live="polite"></div><button id="wd-start" class="main" type="button" disabled>进入写作</button><p class="sub">多选后分别写作。资料链接随题材保留。</p></aside></div>
+    </section>
+    <section id="wd-detail" hidden></section>
+    <section id="wd-handoff" hidden></section>
+  </div>
+  <script>
+    (()=>{
+      const root=document.getElementById('writter-discovery');
+      const el=id=>root.querySelector('#'+id);
+      const data=[
+        {id:'beam',kind:'hot',title:'Reflection 发布 501B 开源模型 Beam，本月放权重',rank:1,count:10,source:'AIHOT · 当前热榜',time:'事件更新 · 10 月 6 日 20:11',summary:'上游将这次模型发布聚合为一个事件，可继续查看官方发布与关联报道。',url:'https://reflection.ai/blog/introducing-beam',provider:'https://aihot.news/items/qy7y0cfu1wbum1ej9urwylfxr',reports:[{title:'官方发布：Introducing Beam',name:'Reflection · 官方发布',url:'https://reflection.ai/blog/introducing-beam'},{title:'关联报道与汇总',name:'Latent Space · 来源标注时间 10 月 6 日 14:28',url:'https://www.latent.space/p/ainews-reflection-beam-501b-a23b'},{title:'第三方报道',name:'The Decoder · 来源标注时间 10 月 6 日 20:11',url:'https://the-decoder.com/reflections-beam-becomes-the-most-capable-open-weight-model-built-outside-china/'}]},
+        {id:'provenance',kind:'hot',title:'OpenAI 公布欧盟文本溯源水印方案',rank:2,count:7,source:'AIHOT · 当前热榜',time:'事件更新 · 10 月 6 日 04:36',summary:'可从官方说明了解方案；此原型尚未读取该事件完整资料。',url:'https://openai.com/index/eu-text-provenance',provider:'https://aihot.news/items/xx5mgdemrqmqw5zw410sbawcz',reports:[{title:'官方说明',name:'OpenAI · 官网',url:'https://openai.com/index/eu-text-provenance'}]},
+        {id:'wired',kind:'more',title:'Kevin Roose Didn’t Use AI to Write His Book About AI',source:'AI News Aggregator / TechURLs · Wired',time:'首次收录 · 10 月 6 日 18:53',summary:null,url:'https://www.wired.com/story/the-big-interview-podcast-kevin-roose',reports:[{title:'原始列表提供的来源链接',name:'Wired · 未读取全文',url:'https://www.wired.com/story/the-big-interview-podcast-kevin-roose'}]},
+        {id:'suno',kind:'more',title:'Italy opens investigation into AI music company Suno over its terms',source:'AI News Aggregator / TechURLs · The Next Web',time:'首次收录 · 10 月 6 日 18:53',summary:null,url:'https://thenextweb.com/news/italy-agcm-suno-investigation-terms',reports:[{title:'原始列表提供的来源链接',name:'The Next Web · 未读取全文',url:'https://thenextweb.com/news/italy-agcm-suno-investigation-terms'}]}
+      ];
+      let view='hot';const selected=new Set();const notes=new Map();
+      const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      function screen(name){['list','detail','handoff'].forEach(x=>el('wd-'+x).hidden=x!==name)}
+      function pick(id){selected.has(id)?selected.delete(id):selected.add(id);render();}
+      function render(){
+        el('wd-hot').classList.toggle('active',view==='hot');el('wd-more').classList.toggle('active',view==='more');el('wd-hot').setAttribute('aria-pressed',String(view==='hot'));el('wd-more').setAttribute('aria-pressed',String(view==='more'));
+        el('wd-range').textContent=view==='hot'?'AIHOT 热榜样本 · 排名沿用上游，是否值得写由你决定':'补充资讯样本 · 上游无摘要和热度，保留原标题';
+        const q=el('wd-search').value.toLowerCase();const shown=data.filter(d=>d.kind===view&&(`${d.title} ${d.source}`).toLowerCase().includes(q));
+        el('wd-cards').innerHTML=shown.length?shown.map(d=>`<article><div class="meta">${d.rank?`<span class="tag">AIHOT 热榜第 ${d.rank}</span><span>${d.count} 个来源</span>`:''}</div><h3>${esc(d.title)}</h3>${d.summary?`<p>${esc(d.summary)}</p>`:''}<div class="meta">${esc(d.source)}</div><div class="sub">${esc(d.time)}</div><div class="actions"><button data-detail="${d.id}" type="button">查看资料</button><button data-pick="${d.id}" type="button" aria-pressed="${selected.has(d.id)}">${selected.has(d.id)?'已选中 · 移除':'选这个题材'}</button></div></article>`).join(''):'<p>当前样本没有匹配的题材。</p>';
+        el('wd-picked').innerHTML=selected.size?`<ul class="picked">${data.filter(d=>selected.has(d.id)).map(d=>`<li>${esc(d.title)}<br><button type="button" data-pick="${d.id}">移除</button></li>`).join('')}</ul>`:'<p class="sub">看到想写的题材，就把它留在这里。</p>';
+        el('wd-start').disabled=!selected.size;el('wd-start').textContent=selected.size?`进入写作 · ${selected.size} 个题材`:'进入写作';
+      }
+      function detail(id){const d=data.find(x=>x.id===id);screen('detail');el('wd-detail').innerHTML=`<button class="back" data-back type="button">← 返回选题列表</button><div class="meta">${esc(d.source)}${d.rank?` · 热榜第 ${d.rank} · ${d.count} 个来源`:''}</div><h1>${esc(d.title)}</h1><p class="sub">${esc(d.time)}</p>${d.summary?`<p>${esc(d.summary)}</p>`:''}<div class="note">资料入口已核对；标题与说明用于选题预览，未完成原文事实核验。${d.kind==='more'?'此来源未提供摘要和热度。':''}</div><h2>从这里了解这件事</h2><div class="sources">${d.reports.map(r=>`<article><div class="sub">${esc(r.name)}</div><h3>${esc(r.title)}</h3><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">打开来源 ↗</a></article>`).join('')}</div>${d.provider?`<a href="${esc(d.provider)}" target="_blank" rel="noopener noreferrer">查看 AIHOT 详情 ↗</a>`:''}<p><label for="wd-angle">记下你想讲的点 <span class="sub">（选填，下一步可以继续改）</span></label></p><textarea id="wd-angle" placeholder="例如：先解释发生了什么，再讲值得关注的变化，不强行加入个人观点。">${esc(notes.get(id)||'')}</textarea><div class="actions"><button class="main" type="button" id="wd-detail-pick">${selected.has(id)?'已选中 · 返回列表':'选定题材，返回列表'}</button></div>`;el('wd-angle').addEventListener('input',e=>notes.set(id,e.target.value));el('wd-detail-pick').addEventListener('click',()=>{selected.add(id);render();screen('list')});}
+      function handoff(){screen('handoff');el('wd-handoff').innerHTML=`<button class="back" data-back type="button">← 返回继续选题</button><h1>接下来，决定怎么讲</h1><p class="sub">每个题材独立进入写作，保留来源和你的想法。</p><div class="handoff">${data.filter(d=>selected.has(d.id)).map(d=>`<article><h3>${esc(d.title)}</h3><p>${notes.get(d.id)?esc(notes.get(d.id)):'还没有指定写作角度，可以先讲清事情本身。'}</p><div class="sub">已保留 ${d.reports.length} 个资料入口</div><div class="note">下一阶段：文章类型 → 选择骨架 → 编辑要点 → 扩写。本原型止于选题交接，尚未生成文章或保存云端。</div><button type="button" data-detail="${d.id}">再看资料与想法</button></article>`).join('')}</div>`;}
+      root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.pick)pick(b.dataset.pick);if(b.dataset.detail)detail(b.dataset.detail);if(b.hasAttribute('data-back')){screen('list');render()}});
+      el('wd-hot').addEventListener('click',()=>{view='hot';render()});el('wd-more').addEventListener('click',()=>{view='more';render()});el('wd-search').addEventListener('input',render);el('wd-start').addEventListener('click',handoff);render();
+    })();
+  </script>
+</div>
