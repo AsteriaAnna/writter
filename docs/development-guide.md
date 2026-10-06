@@ -6,7 +6,7 @@
 
 仓库：https://github.com/AsteriaAnna/writter
 
-接手时先读本指南，说明当前分支、代码和部署状态；按具体任务阅读相关文件，不必先做全仓库重新审计。先辨认“已实现”“PR 待合并”“待设计”“真实验收待完成”，再行动。用户在本轮要求讨论设计与保存指南，没有要求继续修改功能代码或部署。
+接手时先读本指南，说明当前分支、代码和部署状态；按具体任务阅读相关文件，不必先做全仓库重新审计。先辨认“已实现”“PR 待合并”“待设计”“真实验收待完成”，再行动。用户已授权上游接口研究及保存 GitHub 文档；本轮不修改功能代码或部署。研究结果见 [上游接入说明](upstream-data-integration.md)。
 
 本次核对的 main 基线：`88748a3bcd0dae984122a79bdf5f36d1c4e243b5`。这是指南提交前的代码基线，后续提交会推进 main，不应把本编号当成永远最新的 HEAD。
 
@@ -130,9 +130,9 @@ https://raw.githubusercontent.com/SuYxh/ai-news-aggregator/main/data/latest-7d.j
 备用： https://cdn.jsdelivr.net/gh/SuYxh/ai-news-aggregator@main/data/latest-{24h或7d}.json
 ```
 
-现有适配读取顶层 `items`、`generated_at`；条目使用 `id`、`title_zh/title`、`summary`、`url`、`source/site_name`、`published_at/first_seen_at`、`site_id`。适配结果包含 provider、externalId、title、summary、originalUrl、sourceName、publishedAt、category。**这只是代码当前消费的字段，不是已经完成的上游 API 契约研究；目前没有可靠热度字段的接入结论。**
+现有适配读取顶层 `items`、`generated_at`；条目使用 `id`、`title_zh/title`、`summary`、`url`、`source/site_name`、`published_at/first_seen_at`、`site_id`。适配结果包含 provider、externalId、title、summary、originalUrl、sourceName、publishedAt、category。**这是当前代码消费字段。2026-10-06 实测确认 Aggregator 导出没有摘要/热度字段，链接未必为原文；AIHOT 公开 API 则有摘要、热点排名与来源统计，但尚未接入。详见 [专项说明](upstream-data-integration.md)。**
 
-下一步须核对样本里的 `url` 指向原文还是中间聚合页，摘要是上游生成还是原文摘录，时间的含义和格式，以及是否存在被当前适配丢掉的字段。
+研究已发现当前适配把来源链接统一叫原文、收录时间回退成发布时间，需在下一轮修正契约及页面标签。下一步先用真实字段做选题卡/事件详情原型，验证信息是否足够，再实施适配。
 
 ### 验收记录应怎样理解
 
@@ -176,7 +176,9 @@ main 的记录：32 项测试通过，历史真实模型/接口流程曾跑通�
 
 ## 8. 接下来的讨论与开发顺序
 
-### 第一项：现有上游数据接入研究（先读，不先改）
+### 第一项：现有上游数据接入研究（已完成首轮）
+
+结果见 [upstream-data-integration.md](upstream-data-integration.md)。AIHOT 身份与公开接口已确认，items/hot-topics/story 实测 HTTP 200；Aggregator 24h 657 条，183 条发布时间空、208 条中文标题空，没有摘要/热度。7d 本轮读取超时；上海函数与真实浏览器尚未验证。下列是本轮研究范围，后续不必默认重做；只补尚未验证项。
 
 交付一份小范围、可验证的接入说明：
 
@@ -213,3 +215,5 @@ main 的记录：32 项测试通过，历史真实模型/接口流程曾跑通�
 ### 本轮记录
 
 2026-10-06：用户认可总体模型图，明确人工选题、上游接口优先研究、文章类型差异、骨架可编辑、多轮修改可内置或外包、编辑后配图排版并复制。此次只保存指南和入口，不修改功能、合并 PR 或部署。
+
+2026-10-06 后续：完成上游专项研究并保存接口、字段、真实响应观察、卡片/详情映射与服务使用范围。未改功能、部署或合并 PR。下一项为发现选题原型及最小 provider 契约讨论；用户暂不需要操作云控制台。骨架/个人风格样本研究仍待开展。
