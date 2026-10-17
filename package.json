@@ -7,8 +7,9 @@
     "dev": "node server.mjs",
     "start": "node server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check public/app.js && node --check src/domain.js && node --check src/cloud-api.js && node --check public/cloud-client.js && node --check src/workflow.js && node --check src/ai.js && node --check src/source-reader.js",
-    "build": "node scripts/build.mjs"
+    "check": "node --check server.mjs && node --check public/app.js && node --check src/domain.js && node --check src/cloud-api.js && node --check public/cloud-client.js && node --check src/workflow.js && node --check src/ai.js && node --check src/source-reader.js && node --check src/editorial.js && node --check scripts/eval-editorial.mjs",
+    "build": "node scripts/build.mjs",
+    "eval:editorial": "node scripts/eval-editorial.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -16,9 +16,9 @@ const tick=()=>new Promise(r=>setTimeout(r,15));
 async function click(w,id){const el=w.document.getElementById(id);assert.ok(el,'missing '+id);el.click();await tick();}
 function fill(w,id,value){const el=w.document.getElementById(id);assert.ok(el,'missing '+id);el.value=value;el.dispatchEvent(new w.Event('input',{bubbles:true}));}
 function fakeAPI(){
- let project,fail=false;const calls=[];
+ let project,fail=false;const calls=[],inputs=[];
  const api={session:async()=>({}),call:async(action,data)=>{
-  calls.push(action);if(action==='whoami')return {uid:'owner',authorized:true};if(action==='capabilities')return {ai:true};
+  calls.push(action);inputs.push({action,data});if(action==='whoami')return {uid:'owner',authorized:true};if(action==='capabilities')return {ai:true};
   if(action==='projects.list')return {items:project?[project]:[],nextOffset:null};
   if(action==='projects.create'){project=upgrade(createProject(data.candidate,'a'.repeat(64)));return structuredClone(project);}
   if(action==='projects.get')return structuredClone(project);
@@ -26,10 +26,10 @@ function fakeAPI(){
   if(action==='tasks.start'){project.workflow.task={id:'task',kind:data.kind,status:'pending',expiresAt:Date.now()+100000};project.revision++;return structuredClone(project);}
   if(action==='tasks.run'){
    const kind=project.workflow.task.kind;
-   project=completeTask(project,kind==='analyze'?{plan:{title:'文章标题',angle:'用户影响',outline:'事实与影响'},documents:[{id:'s',url:'https://example.com/',text:'原始事实'}],claims:[{text:'有依据的事实',quote:'原始事实',sourceId:'s'}],warnings:['仅一个来源']}:kind==='draft'?{markdown:'## 标题\n\n正文<script>',visuals:[]}:kind==='audit'?{issues:[]}:{plan:{...project.plan,angle:'新角度'},documents:project.workflow.documents,claims:project.workflow.claims,warnings:[]});
+   project=completeTask(project,kind==='analyze'?{plan:{title:'文章标题',angle:'用户影响',outline:'事实与影响'},documents:[{id:'s',url:'https://example.com/',text:'原始事实'}],claims:[{text:'有依据的事实',quote:'原始事实',sourceId:'s'}],warnings:['仅一个来源']}:kind==='draft'?{markdown:'## 标题\n\n正文<script>',visuals:[]}:kind==='audit'?{review:{facts:'pass',structure:'pass',writing:'pass',summary:'主线回应问题，仍需实际阅读判断。'},issues:[]}:{plan:{...project.plan,angle:'新角度'},documents:project.workflow.documents,claims:project.workflow.claims,warnings:[]});
    return structuredClone(project);
   }throw Error(action);
- }};return {api,calls,setFail:v=>fail=v,get:()=>project};
+ }};return {api,calls,inputs,setFail:v=>fail=v,get:()=>project};
 }
 test('cloud editorial journey: detection, confirmation, generation, audit, preview and invalidation',async()=>{
  const f=fakeAPI(),w=await mount('cloud',f.api);try{
@@ -37,7 +37,7 @@ test('cloud editorial journey: detection, confirmation, generation, audit, previ
   assert.equal(w.document.getElementById('approve').disabled,true);
   await click(w,'analyze');assert.match(w.document.body.textContent,/有依据的事实/);
   await click(w,'approve');assert.match(w.location.hash,/studio/);
-  await click(w,'generate');await click(w,'audit-draft');await click(w,'preview');
+  await click(w,'generate');await click(w,'audit-draft');assert.match(w.document.body.textContent,/主线与结构：本次未发现问题/);fill(w,'draft-instruction','让开篇更具体');await click(w,'revise-draft');assert.equal(f.inputs.findLast(x=>x.action==='tasks.start').data.input.instruction,'让开篇更具体');assert.equal(f.get().workflow.audit,null);await click(w,'audit-draft');await click(w,'preview');
   assert.ok(w.document.querySelector('.paper'));assert.ok(!w.document.querySelector('.paper script'));assert.equal(w.document.getElementById('copy').disabled,false);
   fill(w,'draft','修改正文');assert.equal(w.document.getElementById('preview').disabled,true);assert.equal(w.document.getElementById('copy').disabled,true);
   await click(w,'save-draft');await click(w,'back');fill(w,'angle','新角度');await click(w,'save-plan');await click(w,'nav-studio');
@@ -53,3 +53,4 @@ test('revision conflict retains input and durable browser buffer',async()=>{
 });
 test('cloud login gate requires a session and captures submit without page navigation',async()=>{let logged=false;const api={session:async()=>null,login:async(user,password)=>{assert.equal(user,'asteria');assert.equal(password,'test-password');logged=true;return {};},call:async action=>action==='whoami'?{uid:'owner',authorized:true}:{items:[],nextOffset:null}};const w=await mount('cloud',api);try{assert.ok(w.document.getElementById('login-form'));fill(w,'username','asteria');fill(w,'password','test-password');const ev=new w.Event('submit',{bubbles:true,cancelable:true});w.document.getElementById('login-form').dispatchEvent(ev);await tick();assert.equal(ev.defaultPrevented,true);assert.equal(logged,true);assert.ok(w.document.getElementById('manual-title'));}finally{await w.happyDOM.close();}});
 test('installed browser SDK exposes the authentication and function APIs actually used',async()=>{const out=await build({entryPoints:['src/cloud-sdk.js'],bundle:true,write:false,format:'iife',globalName:'WritterSDK',platform:'browser'});const w=new Window({url:'http://localhost:3000'});try{w.eval(out.outputFiles[0].text);const app=w.eval("WritterSDK.default.init({env:'writter-dev-d0g7h1prq4ce60665',region:'ap-shanghai'})");assert.equal(typeof app.auth.getSession,'function');assert.equal(typeof app.auth.signInWithPassword,'function');assert.equal(typeof app.callFunction,'function');}finally{await w.happyDOM.close();}});
+
