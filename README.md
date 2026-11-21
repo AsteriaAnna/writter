@@ -22,6 +22,8 @@ python scripts/check_html.py examples/article.html
 
 Python 3 标准库即可，无需安装第三方依赖。组件文档是来源，examples 为生成物。预览中的 JS 只用于复制，不属于公众号正文。
 
+复制逻辑的可复现模拟测试：`node scripts/test_preview.mjs`（Node 18+，无第三方依赖）。[测试记录与限制](docs/test-report-2026-11-21.md)：8 项模拟行为测试通过；真实浏览器、微信编辑器及手机显示尚未通过验收。
+
 ## 本次修订
 
 用户反馈 v0.1 复制到微信后手机端无法显示。根因尚未取得保存后 HTML 验证；本版使用更保守的单栏结构、行内样式与 leaf 包裹，移除默认 SVG 交互与表格拼版，新增独立富文本复制出口，并明确图片和代码处理规则。旧版仍在 Git 历史中。
