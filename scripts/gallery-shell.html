@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GREEN / 01 · 全组件样本册</title>
+<style>
+body{margin:0;background:#e8e9e3;color:#111;font-family:system-ui,-apple-system,sans-serif}body>header{max-width:900px;margin:auto;padding:24px 16px}h1{font-size:28px}body>header p{line-height:1.8}nav{margin:16px 0}button,select,input{font:inherit;padding:8px;box-sizing:border-box}button{background:#123a2c;color:#f7f7f0;border:2px solid #111;cursor:pointer}input{width:100%;margin:6px 0}main{max-width:900px;margin:auto;padding:0 12px 32px}.card{background:#fff;margin:0 0 28px;border:1px solid #b9bcb3}.card>header{padding:16px}.card>header h2{margin:0 0 8px;font-size:19px}.card>header p{line-height:1.7;margin:6px 0}.card small{display:block;margin:10px 0;color:#555952}.sample{width:375px;max-width:100%;margin:0 auto;background:#f7f7f0;color:#343832;font-size:16px;line-height:1.85;overflow-wrap:break-word}.card details{padding:16px}.card pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.7}.status{color:#123a2c}.image-fields label{display:block;font-size:14px}.card[hidden]{display:none}
+</style></head><body>
+<header><h1>GREEN / 01 · 36 个组件</h1><p>新粗野主义 × 瑞士国际主义。保留原版封面、双栏、画框与两种展开动效，新增正文、流程、图文与互动组件。此页展示的是模板效果，所有组件仍待微信保存和手机验收。</p><p>每张卡单独复制，不复制工具栏与源码。图文示例为本地生成的色块测试图，正式复制前逐张绑定真实素材。SVG 可在此点击试用，但不代表微信端已通过。</p>
+<nav><label>预览宽度 <select id="width"><option>320</option><option selected>375</option><option>430</option><option>677</option></select> px</label> <label>类别 <select id="filter"><option value="all">全部组件</option><option value="C">静态与滑动</option><option value="I">SVG 点击实验项</option></select></label></nav></header>
+<main><!--COMPONENTS--></main>
+<script>
+const cards = [...document.querySelectorAll('.card')];
+document.getElementById('width').addEventListener('change', event => {
+  const width = Number(event.target.value);
+  document.querySelectorAll('.sample').forEach(el => el.style.width = width + 'px');
+});
+document.getElementById('filter').addEventListener('change', event => {
+  cards.forEach(card => card.hidden = event.target.value !== 'all' && !card.dataset.id.startsWith(event.target.value));
+});
+async function copyHTML(target, status, html = target.innerHTML) {
+  const text = target.innerText;
+  try {
+    if (!navigator.clipboard?.write || !window.ClipboardItem) throw new Error('No rich clipboard');
+    await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
+    status.textContent = '已复制此组件的富文本；请粘贴后保存、重新打开并检查手机。';
+  } catch (error) {
+    const selection = window.getSelection();
+    const range = document.createRange();range.selectNodeContents(target);
+    selection.removeAllRanges();selection.addRange(range);
+    const handler = event => {
+      if (!event.clipboardData) return;
+      event.clipboardData.setData('text/html',html);
+      event.clipboardData.setData('text/plain',text);
+      event.preventDefault();
+    };
+    document.addEventListener('copy',handler);
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+    finally { document.removeEventListener('copy',handler); }
+    status.textContent = copied ? '已通过备用方式复制此组件的富文本。' : '自动复制被阻止，当前组件已选中，请按 Ctrl+C（Mac：⌘C）。';
+    if (copied) selection.removeAllRanges();
+  }
+}
+cards.forEach(card => {
+  const sample = card.querySelector('.sample');
+  const status = card.querySelector('.status');
+  sample.querySelectorAll('img').forEach((img, index) => {
+    const host = card.querySelector('.image-fields');
+    if (!host) return;
+    const label = document.createElement('label');label.textContent = '素材 ' + (index + 1) + ' 的 HTTPS 地址：';
+    const input = document.createElement('input');input.type = 'url';input.placeholder = '填写自己已上传的图片地址';
+    img.dataset.demo = 'true';
+    input.addEventListener('change', () => {
+      let url;
+      try { url = new URL(input.value.trim());if(url.protocol !== 'https:') throw new Error(); }
+      catch { img.dataset.demo = 'true';status.textContent = '请输入完整 HTTPS 素材地址。';return; }
+      img.dataset.demo = 'true';
+      img.onload = () => { img.setAttribute('data-w',String(img.naturalWidth));img.dataset.demo = 'false';status.textContent = '素材已加载；原始宽度已更新。请确认有权使用。'; };
+      img.onerror = () => { img.dataset.demo = 'true';status.textContent = '素材加载失败，请检查地址。'; };
+      img.src = url.href;
+    });
+    label.appendChild(input);host.appendChild(label);
+  });
+  card.querySelector('.copy').addEventListener('click', async () => {
+    const images = [...sample.querySelectorAll('img')];
+    if (images.some(img => img.dataset.demo === 'true' || !img.complete || !img.naturalWidth || !/^https:\/\//.test(img.getAttribute('src') || ''))) {
+      status.textContent = '此图片组件仍含示例图或加载失败的素材，请先逐张绑定真实图片。其它文字组件可独立复制。';return;
+    }
+    // Serialize a fresh component snapshot, excluding preview-only metadata.
+    // SMIL markup remains in the output; no screenshot or static replacement.
+    const clone = sample.cloneNode(true);
+    clone.querySelectorAll('img').forEach(img => img.removeAttribute('data-demo'));
+    const html = clone.innerHTML;
+    await copyHTML(sample,status,html).catch(() => {
+      status.textContent = '复制失败，请选中组件渲染区域手动复制。';
+    });
+  });
+});
+</script></body></html>
