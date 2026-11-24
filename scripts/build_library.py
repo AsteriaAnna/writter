@@ -2,7 +2,6 @@
 """Original theme + additive components; emits catalog, documentation and gallery."""
 from pathlib import Path
 from html import escape
-from html.parser import HTMLParser
 import base64
 import json
 import re
@@ -13,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PAPER, SOFT, GREEN, LIME, INK, TEXT, MUTED = '#f7f7f0', '#f0f0e9', '#123a2c', '#c6ff00', '#111111', '#343832', '#555952'
 
 
-def p(text, size=16, color=TEXT, weight=400, margin='0 0 12px', extra=''):
+def p(text, size=15, color=TEXT, weight=400, margin='0 0 12px', extra=''):
     return f'<p style="margin:{margin};font-size:{size}px;line-height:1.85;color:{color};font-weight:{weight};{extra}"><span leaf="">{text}</span></p>'
 
 
@@ -30,11 +29,11 @@ def box(content, bg=SOFT):
 
 
 def chip(text):
-    return f'<span style="display:inline-block;padding:3px 7px;background:{INK};color:{LIME};font-size:12px;font-weight:900;line-height:1.2;letter-spacing:1px;"><span leaf="">{text}</span></span>'
+    return f'<span style="display:inline-block;padding:3px 7px;background:{INK};color:{LIME};font-family:Arial,sans-serif;font-size:10px;font-weight:900;line-height:1.2;letter-spacing:1px;"><span leaf="">{text}</span></span>'
 
 
 def folio(left, right):
-    cell = 'font-size:12px;line-height:1.3;letter-spacing:1px;font-weight:900;padding:0 0 8px;'
+    cell = 'font-family:Arial,sans-serif;font-size:11px;line-height:1.3;letter-spacing:1px;font-weight:900;padding:0 0 8px;'
     return (f'<table style="width:100%;table-layout:fixed;border-collapse:collapse;border-bottom:2px solid {INK};margin:0 0 14px;"><tr>'
             f'<td style="{cell}width:65%;color:{GREEN};"><span leaf="">{left}</span></td>'
             f'<td style="{cell}width:35%;text-align:right;color:{MUTED};"><span leaf="">{right}</span></td></tr></table>')
@@ -45,7 +44,7 @@ def register(rows):
     for i, (key, title, note) in enumerate(rows):
         rule = f'border-top:2px solid {INK};' if i else ''
         bg, paper = (GREEN, SOFT) if i % 2 else (INK, PAPER)
-        body.append(f'<tr><td style="width:16%;background:{bg};color:{LIME};text-align:center;font-size:16px;font-weight:900;vertical-align:middle;{rule}"><span leaf="">{key}</span></td>'
+        body.append(f'<tr><td style="width:14%;background:{bg};color:{LIME};text-align:center;font-size:16px;font-weight:900;vertical-align:middle;{rule}"><span leaf="">{key}</span></td>'
                     f'<td style="padding:12px;background:{paper};border-left:2px solid {INK};{rule}">'
                     + p(title,16,INK,900,'0','line-height:1.35;') + (p(note,14,TEXT,400,'4px 0 0') if note else '') + '</td></tr>')
     return f'<table style="width:100%;table-layout:fixed;border-collapse:collapse;border:2px solid {INK};">' + ''.join(body) + '</table>'
@@ -54,7 +53,10 @@ def register(rows):
 def plate(media, index, caption):
     return (f'<section style="border:2px solid {INK};background:{SOFT};">' + media
             + f'<section style="border-top:2px solid {INK};padding:10px 12px;">'
-            + chip(index) + p(caption,14,TEXT,700,'6px 0 0','line-height:1.5;') + '</section></section>')
+            + '<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin:0;"><tr>'
+            + '<td style="width:25%;padding:0;vertical-align:middle;">' + chip(index) + '</td>'
+            + '<td style="width:75%;padding:0;vertical-align:middle;">'
+            + p(caption,12,TEXT,700,'0','line-height:1.5;') + '</td></tr></table></section></section>')
 
 
 def subhead(text):
@@ -65,47 +67,6 @@ def image(slot=1, full=False):
     prefix = 'IMAGE' if slot == 1 else f'IMAGE_{slot}'
     width = 'width:100%;' if full else ''
     return f'<p style="margin:0;line-height:1.5;"><span leaf=""><img src="{{{{{prefix}_URL}}}}" data-w="{{{{{prefix}_WIDTH}}}}" alt="{{{{{prefix}_ALT}}}}" style="display:block;{width}max-width:100%;height:auto;margin:0 auto;border:0;"></span></p>'
-
-
-class LeafWriter(HTMLParser):
-    """Preserve SVG tag/attribute case; add leaf only to ordinary HTML text."""
-    def __init__(self):
-        super().__init__(convert_charrefs=True)
-        self.out, self.svg = [], 0
-
-    def handle_starttag(self, tag, attrs):
-        self.out.append(self.get_starttag_text())
-        if tag == 'svg': self.svg += 1
-
-    def handle_startendtag(self, tag, attrs):
-        self.out.append(self.get_starttag_text())
-
-    def handle_endtag(self, tag):
-        self.out.append(f'</{tag}>')
-        if tag == 'svg': self.svg -= 1
-
-    def handle_data(self, data):
-        text = escape(data, quote=False)
-        self.out.append(text if self.svg or not data.strip() else f'<span leaf="">{text}</span>')
-
-
-def normalize_original(source, svg=False):
-    source = re.sub(r'font-family:[^;\"]*;?', '', source)
-    source = re.sub(r'\sfont-family="[^"]*"', '', source)
-    source = source.replace('font-weight:800', 'font-weight:900').replace('font-weight="800"', 'font-weight="900"')
-    sizes = {9:12, 10:12, 11:12, 12:14, 13:14, 15:16, 17:19, 22:24, 26:24, 34:32}
-    source = re.sub(r'font-size:(\d+)px', lambda m: f'font-size:{sizes.get(int(m[1]), int(m[1]))}px', source)
-    source = re.sub(r'font-size="(\d+)"', lambda m: f'font-size="{sizes.get(int(m[1]), int(m[1]))}"', source)
-    colors = {'#ffffff':PAPER, '#6c7369':MUTED, '#e2e8e4':'#d2d8d0', '#b8ccc1':'#d2d8d0', '#8da99a':'#d2d8d0', '#c9ccc3':'#487061'}
-    for old, new in colors.items(): source = source.replace(old, new)
-    source = source.replace('杜绝微信 ul/ol 缩进错位', '以独立编号列控制列表对齐')
-    source = source.replace('非认证号禁止普通外链跳转，统一排为可复制纯文本', '默认列出可复制来源，跳转能力按账号与链接类型核对')
-    source = source.replace('必须保留 data-w 属性', '换图时同步更新原始宽度 data-w')
-    source = re.sub(r'https://placehold.co/[^"\s]+', '{{IMAGE_URL}}', source)
-    source = source.replace('data-w="800"', 'data-w="{{IMAGE_WIDTH}}"').replace('alt="图注说明"', 'alt="{{IMAGE_ALT}}"')
-    source = source.replace('width:100% !important;', 'width:100%;max-width:100%;').replace('height:auto !important;', 'height:auto;')
-    parser = LeafWriter(); parser.feed(source); parser.close()
-    return ''.join(parser.out)
 
 
 def catalog():
@@ -135,12 +96,11 @@ def catalog():
       ('结尾与互动引导','文章结束','收束栏目与读者互动','中间重复出现关注卡','文字引导不是可点击的微信功能按钮'),
     ]
     for i, (name, scenario, expression, avoid, limits) in enumerate(meta):
-        html = normalize_original(blocks[i])
-        if i in (4,5,6,8,10): html = section(html)
-        add(f'C{i+1:02}',name,scenario,expression,avoid,limits,html,origin='原版视觉延续，格式统一')
+        html = blocks[i]
+        add(f'C{i+1:02}',name,scenario,expression,avoid,limits,html,origin='原版逐字恢复')
 
-    add('C13','轻量正文','连续叙述、解释与补充','承载主信息，给重组件留出呼吸','为凑视觉而把每段卡片化','一个自然段一项，不截断原文',section(p('清晨，第一张校样送到桌上。翻到照片那一页，图里的铅笔线比昨天清楚了一点。',margin='0',extra='line-height:2;text-align:justify;'),padding='6px 20px 14px'))
-    add('C14','二级小节标题','一级章节内的子问题','在同一议题内建立次级层次','把普通强调句升级为标题','建议两行以内，长标题自然换行',section(folio('02.1 / FIELD NOTES','SECTION 02') + subhead('一张照片，怎样成为证据？'),padding='18px 20px 8px'))
+    add('C13','轻量正文','连续叙述、解释与补充','承载主信息，给重组件留出呼吸','为凑视觉而把每段卡片化','一个自然段一项，不截断原文',section(p(f'清晨，第一张校样送到桌上。翻到照片那一页，<span style="font-weight:900;color:{INK};border-bottom:2px solid {LIME};">纸边的铅笔线</span>比昨天清楚了一点。',margin='0',extra='line-height:2;text-align:justify;'),padding='6px 20px 14px'))
+    add('C14','二级小节标题','一级章节内的子问题','在同一议题内建立次级层次','把普通强调句升级为标题','建议两行以内，长标题自然换行',section(folio('02.1 / FIELD NOTES','SECTION 02') + subhead(f'一张照片，怎样成为<span style="background:{LIME};padding:1px 5px;color:{INK};">证据</span>？'),padding='18px 20px 8px'))
     add('C15','三级短标题','小节内的短步骤或术语分组','以轻量标识表达更低层级','与一级章节使用同样粗重卡片','短标题为宜，不强加英文副标题',section(chip('02.1a') + p('先看画面边缘',16,INK,900,'6px 0 0','line-height:1.35;'),padding='10px 20px 6px'))
     add('C16','导读与看点','长文开头、读者需要路线图','先告诉读者会解决哪些问题','假装可点击锚点目录','2—4 项，来自真实内容，不强制一篇只三章',section(folio('CONTENTS','本篇导读') + register([('01','观察','从一张现场照片开始。'),('02','对照','把两次校样摆在一起。'),('03','定稿','留下可以复核的细节。')])))
     add('C17','行内标记组合','正文确有重点短语、术语或结论','加粗、色底与底边框表达不同强度','整段高亮或按固定频率胡乱标记','每段通常 1—2 个短语，按语义选择',section(p(f'两张样片都保留了<strong style="color:{GREEN};font-weight:900;">原始比例</strong>。放大后看，<span style="background:{LIME};color:{INK};padding:1px 4px;">铅笔标记</span>恰好落在<span style="border-bottom:2px solid {GREEN};">裁切线</span>上。',margin='0',extra='line-height:2;text-align:justify;'),padding='6px 20px 14px'))
@@ -158,11 +118,11 @@ def catalog():
     add('C29','双图与共享图注','两个界面、前后状态或同组作品','两张图在同一尺度下比较','不相关图片硬凑比较','独立绑定两张素材，不自动裁切证据截图',section(plate(f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tr><td style="width:50%;padding:8px;vertical-align:top;border-right:2px solid {INK};">'+image()+'</td><td style="width:50%;padding:8px;vertical-align:top;">'+image(2)+'</td></tr></table>','FIG. 04–05','同一机位 · 左为初校，右为定稿。')))
     add('C30','横向滑动图集','多张截图、作品或分镜','用手动滑动保持单张图可读宽度','称作自动轮播、隐藏必须阅读的结论','2—6 张；明确滑动提示；非 SVG',section(folio('CONTACT SHEET','向左滑动') + f'<section style="overflow-x:auto;white-space:nowrap;">' + ''.join('<section style="display:inline-block;width:82%;box-sizing:border-box;vertical-align:top;white-space:normal;padding-right:8px;">' + plate(image(i),f'FIG. {i:02}',caption) + '</section>' for i,caption in enumerate(['原始取景','第一次裁切','定稿校样'],1)) + '</section>'),profile='scroll')
     add('C31','代码、命令与 Prompt','技术教程与可复制提示词','等宽展示，保留缩进和符号','把代码半角字符全角化','内容先转义，每行独立；长行允许换行',section(p('SOURCE / PYTHON',12,LIME,900,'0 0 14px','letter-spacing:1.2px;line-height:1.3;')+p('if count &lt; 3:',14,PAPER,400,'0','font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;')+p('    print(&quot;保留四个半角空格&quot;)',14,PAPER,400,'0','font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;'),INK,f'border-bottom:6px solid {LIME};'))
-    add('C32','信息条与行内代码','时间地点、版本、短标识符','紧凑标出辅助信息，保持正文层级','大段代码放在信息条','短值可换行；代码是字体功能例外',section(folio('EDITION NOTES','版本 01') + p('组件索引',14,INK,900,'0 0 4px') + p('references/components.md',14,GREEN,400,'0','font-family:monospace;overflow-wrap:anywhere;'),SOFT,f'border-top:3px solid {INK};','14px 20px'))
+    add('C32','信息条与行内代码','时间地点、版本、短标识符','紧凑标出辅助信息，保持正文层级','大段代码放在信息条','短值可换行；代码是字体功能例外',section(chip('EDITION NOTES / 01') + p('组件索引',14,INK,900,'8px 0 4px') + p('references/components.md',14,GREEN,400,'0','font-family:monospace;overflow-wrap:anywhere;'),SOFT,f'border-top:3px solid {INK};','14px 20px'))
 
 
     for i, name, scene, expr in [(12,'点击展开抽屉','正文补充解释','由紧凑提示展开详情'),(13,'点击揭晓答案','自测或悬念','读者点击后看到答案')]:
-        add(f'I{i-11:02}',name,scene,expr,'替代必须直接可见的结论','一次展开，无法回缩；viewBox 动画待微信保存与手机验证；文案逐行核对',normalize_original(blocks[i],svg=True),'svg-legacy','原版动效与视觉保留，字体／色板统一')
+        add(f'I{i-11:02}',name,scene,expr,'替代必须直接可见的结论','一次展开，无法回缩；viewBox 动画待微信保存与手机验证；文案逐行核对',blocks[i],'svg-legacy','原版逐字恢复')
 
     reveal = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 220" style="display:block;width:100%;height:auto;overflow:hidden;">
 <rect x="1" y="1" width="378" height="218" fill="{SOFT}" stroke="{INK}" stroke-width="2"/>
@@ -210,9 +170,9 @@ def build():
     entries=catalog()
     (ROOT/'references/catalog.json').write_text(json.dumps(entries,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     doc=['# 第二部分：GREEN / 01 组件库 v0.3\n',
-         '新粗野主义 × 瑞士国际主义；36 个组件：原 14 个视觉目标保留，新增 22 个。统一规则见 [代码格式要求](format-rules.md)。原始文件逐字存档于 [v0.1 原稿](original-v0.1.md)。\n',
+         '新粗野主义 × 瑞士国际主义；36 个组件：原 14 个代码块逐字恢复，新增 22 个。统一规则见 [代码格式要求](format-rules.md)。原始文件逐字存档于 [v0.1 原稿](original-v0.1.md)。\n',
          '**所有组件均未完成本仓的微信手机端验收。** I01/I02 保留原动画，I03/I04 为新增 SMIL 实验组件，不能当成兼容性已经修复。\n',
-         '每个代码块是独立组件片段，外层文章容器仅负责统一字体环境，不再重复加左右 padding；组件自身背景和安全边距齐全。模板中的大括号参数须绑定真实素材后才能发布。\n',
+         '每个代码块是独立组件片段，外层文章容器仅负责统一字体环境，不再重复加左右 padding；原版的通栏表格按作者原始边距显示。模板中的大括号参数须绑定真实素材后才能发布。\n',
          '| 编号 | 组件 | 类型 | 来源 |\n|---|---|---|---|']
     for c in entries: doc.append(f'| {c["id"]} | {c["name"]} | {c["profile"]} | {c["origin"]} |')
     for c in entries:
@@ -223,7 +183,9 @@ def build():
     cards=[]
     for c in entries:
         example=re.sub(r'\{\{([A-Z_0-9]+)\}\}',lambda m: fixture if m[1].endswith('_URL') else '800' if m[1].endswith('_WIDTH') else '仅作排版预览的色块测试图',c['html'])
-        images = '<p>这是布局测试图。逐张填写已上传素材的 HTTPS 地址，加载成功后才允许复制图片组件。</p><section class="image-fields"></section>' if c['slots'] else ''
+        if c['id'] == 'C08':
+            example = re.sub(r'src="https://placehold.co/[^"]+"', f'src="{fixture}"', example)
+        images = '<p>这是布局测试图。逐张填写已上传素材的 HTTPS 地址，加载成功后才允许复制图片组件。</p><section class="image-fields"></section>' if '<img ' in example else ''
         badge='SVG 实验项 · 手机待验收' if c['profile'].startswith('svg') else '代码可检查 · 手机待验收'
         cards.append(f'<article class="card" data-id="{c["id"]}"><header><h2>{c["id"]} / {c["name"]}</h2><p>{c["scenario"]} → {c["expression"]}</p><p>{c["limits"]}</p><small>{badge}</small>{images}<button class="copy" type="button">复制此组件</button><p class="status" role="status"></p></header><section class="sample">{example}</section><details><summary>查看模板代码与绑定参数</summary><pre>{escape(c["html"])}</pre></details></article>')
     shell=(ROOT/'scripts/gallery-shell.html').read_text(encoding='utf-8')

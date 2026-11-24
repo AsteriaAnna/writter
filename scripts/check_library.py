@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 PALETTE = {'#123a2c','#c6ff00','#111111','#343832','#f7f7f0','#f0f0e9','#555952','#d2d8d0','#487061'}
-SIZES = {12,14,16,19,24,32,52}
+SIZES = {10,11,12,14,15,16,19,24,32,52}
 ALLOWED = {'section','p','span','strong','br','img','table','tr','td','th','thead','tbody','svg','rect','line','text','g','path','animate'}
 VOID = {'br','img'}
 
@@ -59,7 +59,9 @@ def validate(c):
     if colors-PALETTE:errors.append('Off-palette '+str(colors-PALETTE))
     sizes={int(x) for x in re.findall(r'font-size[:=]["\s]*(\d+)',html)}
     if sizes-SIZES:errors.append('Off-scale font size '+str(sizes-SIZES))
-    if 'font-family' in html and c['id'] not in {'C31','C32'}:errors.append('Unexpected font family')
+    for family in re.findall(r'font-family:([^;"]+)',html):
+        if family != 'Arial,sans-serif' and not (family == 'monospace' and c['id'] in {'C31','C32'}):
+            errors.append('Unexpected font family')
     if re.search(r'border-radius\s*:\s*[1-9]',html):errors.append('Rounded geometry')
     for key in ['scenario','expression','avoid','limits','origin','status']:
         if not c.get(key):errors.append('Missing definition '+key)
@@ -79,7 +81,18 @@ def main():
     entries=json.loads((ROOT/'references/catalog.json').read_text(encoding='utf-8'))
     assert len(entries)==36 and len({c['id'] for c in entries})==36
     errors=[]
+    original = (ROOT/'references/original-v0.1.md').read_text(encoding='utf-8')
+    blocks = re.findall(r'```html\n(.*?)\n```',original,re.S)
+    ids = [f'C{i:02}' for i in range(1,13)] + ['I01','I02']
+    assert len(blocks) == len(ids)
+    masters = dict(zip(ids,blocks))
     for c in entries:
+        if c['id'] in masters:
+            if c['html'] != masters[c['id']]:
+                errors.append(f'{c["id"]}: differs from original')
+            continue
+        if not re.search(r'(?:color:|background:|solid |fill="|stroke=")#c6ff00',c['html']):
+            errors.append(f'{c["id"]}: missing fluorescent accent')
         errors.extend(f'{c["id"]}: {e}' for e in validate(c))
     doc=(ROOT/'references/components.md').read_text(encoding='utf-8')
     gallery=(ROOT/'examples/gallery.html').read_text(encoding='utf-8')
