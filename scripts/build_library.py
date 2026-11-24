@@ -29,6 +29,38 @@ def box(content, bg=SOFT):
     return f'<section style="padding:16px;border:2px solid {INK};background:{bg};box-sizing:border-box;">{content}</section>'
 
 
+def chip(text):
+    return f'<span style="display:inline-block;padding:3px 7px;background:{INK};color:{LIME};font-size:12px;font-weight:900;line-height:1.2;letter-spacing:1px;"><span leaf="">{text}</span></span>'
+
+
+def folio(left, right):
+    cell = 'font-size:12px;line-height:1.3;letter-spacing:1px;font-weight:900;padding:0 0 8px;'
+    return (f'<table style="width:100%;table-layout:fixed;border-collapse:collapse;border-bottom:2px solid {INK};margin:0 0 14px;"><tr>'
+            f'<td style="{cell}width:65%;color:{GREEN};"><span leaf="">{left}</span></td>'
+            f'<td style="{cell}width:35%;text-align:right;color:{MUTED};"><span leaf="">{right}</span></td></tr></table>')
+
+
+def register(rows):
+    body = []
+    for i, (key, title, note) in enumerate(rows):
+        rule = f'border-top:2px solid {INK};' if i else ''
+        bg, paper = (GREEN, SOFT) if i % 2 else (INK, PAPER)
+        body.append(f'<tr><td style="width:16%;background:{bg};color:{LIME};text-align:center;font-size:16px;font-weight:900;vertical-align:middle;{rule}"><span leaf="">{key}</span></td>'
+                    f'<td style="padding:12px;background:{paper};border-left:2px solid {INK};{rule}">'
+                    + p(title,16,INK,900,'0','line-height:1.35;') + (p(note,14,TEXT,400,'4px 0 0') if note else '') + '</td></tr>')
+    return f'<table style="width:100%;table-layout:fixed;border-collapse:collapse;border:2px solid {INK};">' + ''.join(body) + '</table>'
+
+
+def plate(media, index, caption):
+    return (f'<section style="border:2px solid {INK};background:{SOFT};">' + media
+            + f'<section style="border-top:2px solid {INK};padding:10px 12px;">'
+            + chip(index) + p(caption,14,TEXT,700,'6px 0 0','line-height:1.5;') + '</section></section>')
+
+
+def subhead(text):
+    return p(text,19,INK,900,'0','line-height:1.4;letter-spacing:-0.5px;')
+
+
 def image(slot=1, full=False):
     prefix = 'IMAGE' if slot == 1 else f'IMAGE_{slot}'
     width = 'width:100%;' if full else ''
@@ -107,26 +139,27 @@ def catalog():
         if i in (4,5,6,8,10): html = section(html)
         add(f'C{i+1:02}',name,scenario,expression,avoid,limits,html,origin='原版视觉延续，格式统一')
 
-    add('C13','轻量正文','连续叙述、解释与补充','承载主信息，给重组件留出呼吸','为凑视觉而把每段卡片化','一个自然段一项，不截断原文',section(p('先把事情讲清楚，再让排版帮助读者识别重点。普通段落保持自然换行，和双栏、图片、引用共同组成文章的阅读节奏。',margin='0')))
-    add('C14','二级小节标题','一级章节内的子问题','在同一议题内建立次级层次','把普通强调句升级为标题','建议两行以内，长标题自然换行',section(p('02.1 / 如何判断问题发生在哪一步',19,GREEN,900,'0',f'border-left:6px solid {GREEN};padding-left:12px;')))
-    add('C15','三级短标题','小节内的短步骤或术语分组','以轻量标识表达更低层级','与一级章节使用同样粗重卡片','短标题为宜，不强加英文副标题',section(p('▍ 保存后的结果',16,INK,900,'0')))
-    add('C16','导读与看点','长文开头、读者需要路线图','先告诉读者会解决哪些问题','假装可点击锚点目录','2—4 项，来自真实内容，不强制一篇只三章',section(box(label('READING MAP / 本篇看点')+p('01　内容结构与表达',margin='0 0 6px')+p('02　图片与交互',margin='0 0 6px')+p('03　保存后的阅读效果',margin='0'))))
-    add('C17','行内标记组合','正文确有重点短语、术语或结论','加粗、色底与底边框表达不同强度','整段高亮或按固定频率胡乱标记','每段通常 1—2 个短语，按语义选择',section(p(f'用<strong style="color:{GREEN};font-weight:900;">加粗表达重点</strong>，用<span style="background:{LIME};color:{INK};">荧光底色突出短语</span>，用<span style="border-bottom:2px solid {GREEN};">细线标记关键词</span>。',margin='0')))
-    add('C18','普通引用与出处','他人原话、文献摘录、多段引用','区分作者叙述和被引用内容','把个人感想伪装为文献证据','出处有依据才填；长引用可增段',section(box(p('“这是一段用于展示引用布局的示例文字。”')+p('—— 排版示例，非他人真实引语',14,MUTED,400,'0'))))
-    add('C19','无序要点','真实并列、无先后关系的信息','平行列出要点','顺序流程却不编号','2—6 项；每项自然增高',section(p('• 内容先有明确结构。')+p('• 组件对应真实表达目的。')+p('• 视觉服务于阅读。',margin='0')))
-    add('C20','步骤时间线','有先后顺序的操作、流程','让步骤、动作和说明连续可跟随','仅有日期没有流程却编造因果','复制完整步骤，编号由顺序生成',section(''.join(f'<section style="border-left:3px solid {GREEN};padding:0 0 16px 16px;">'+p(f'{i:02} / {title}',19,GREEN,900,'0 0 6px')+p(body,margin='0')+'</section>' for i,title,body in [(1,'确认内容','先确认标题、事实与来源。'),(2,'安排版式','为并列、步骤和引语选择组件。'),(3,'检查保存','保存后重新打开并核对。')])))
-    add('C21','行动检查清单','发布前核对、读者执行动作','把待核对事项明确列出','假装勾选状态会保存','方框为静态符号，不记录用户操作',section(box(label('CHECKLIST / 逐项核对')+p('□ 标题与段落完整')+p('□ 图片和图注对应')+p('□ 保存后重新打开检查',margin='0'))))
-    add('C22','静态 FAQ','答疑、访谈、常见问题','问题与回答成组表达','无提问语义的章节标题','一个问答一组，回答可多段',section(box(p('Q / 为什么要看保存后的结果？',19,GREEN,900)+p('A / 因为复制、编辑器保存和手机阅读属于不同阶段，需要分别检查。',margin='0'))))
-    add('C23','概念解释卡','首次出现、需要定义的术语','名词、定义、边界清晰分层','普通段落硬套概念标签','一个概念一张卡；不能删掉必要限定',section(box(label('DEFINITION / 概念')+p('富文本复制',24,GREEN,900)+p('传递文字及其 HTML 格式的复制方式。复制源码字符串与复制渲染内容不是同一件事。',margin='0'))))
-    add('C24','案例档案卡','有情境、动作和结果的真实案例','让事实结构可扫描','补造结果或把目标写成成果','至少有真实情境；缺结果时写待验证',section(box(label('CASE FILE / 案例结构')+p('情境：一篇教程需要展示操作截图。')+p('动作：使用编号图注与横向图集。')+p('结果：待实际发布与读者反馈验证。',margin='0'))))
-    add('C25','数字亮点','需要读者记住且有依据的数据','数字、含义、单位与来源一起出现','无来源的大数字宣传','必须有口径；不能自动凑百分比',section(box(p('03',32,GREEN,900,'0')+p('三个需要分别检查的阶段',19,INK,900)+p('本页示例计数：复制、保存、阅读，不是业务统计。',14,MUTED,400,'0'))))
-    add('C26','上下前后对照','说明较长的前后变化或双对象比较','保持比较关系，给长文案完整宽度','静默替换作者选定的双栏','与 C05 并存，按长度选择',section(box(label('BEFORE / 调整前')+p('较长的说明放进窄列后，读者需要反复换行。')+label('AFTER / 调整后')+p('内容较长时可以选择上下对照，同时保留双栏作为短比较的表达。',margin='0'))))
-    add('C27','自然尺寸图片与 GIF','普通截图、小图、GIF','小图不强制拉伸，图注保持可编辑','默认所有图都铺满','GIF 用真实素材并单测；无图注时删除说明',section(image()+p('FIG. 02 / 图片说明按真实素材填写',14,MUTED,400,'8px 0 0')))
-    add('C28','左图右文','产品、人物或作品的简短介绍','图片与解释相邻，形成同一阅读单元','长履历和多段故事强塞半栏','图片 42%、文字 58%；说明短、窄屏复核',section(f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;border:2px solid {INK};"><tr><td style="width:42%;padding:12px;vertical-align:top;background:{SOFT};">'+image()+'</td><td style="width:58%;padding:12px;vertical-align:top;">'+p('图文并置',19,GREEN,900)+p('图片提供对象，文字说明它与本节内容的关系。',14,TEXT,400,'0')+'</td></tr></table>'))
-    add('C29','双图与共享图注','两个界面、前后状态或同组作品','两张图在同一尺度下比较','不相关图片硬凑比较','独立绑定两张素材，不自动裁切证据截图',section(f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;border:2px solid {INK};"><tr><td style="width:50%;padding:8px;vertical-align:top;border-right:2px solid {INK};">'+image()+'</td><td style="width:50%;padding:8px;vertical-align:top;">'+image(2)+'</td></tr></table>'+p('FIG. 03–04 / 左右图片的共同说明',14,MUTED,400,'8px 0 0')))
-    add('C30','横向滑动图集','多张截图、作品或分镜','用手动滑动保持单张图可读宽度','称作自动轮播、隐藏必须阅读的结论','2—6 张；明确滑动提示；非 SVG',section(label('GALLERY / 左右滑动查看')+f'<section style="overflow-x:auto;overflow-y:hidden;white-space:nowrap;border:2px solid {INK};">'+''.join(f'<section style="display:inline-block;vertical-align:top;white-space:normal;width:82%;padding:12px;box-sizing:border-box;">'+image(i)+p(f'{i:02} / 图集说明',14,MUTED,400,'8px 0 0')+'</section>' for i in [1,2,3])+'</section>'),profile='scroll')
-    add('C31','代码、命令与 Prompt','技术教程与可复制提示词','等宽展示，保留缩进和符号','把代码半角字符全角化','内容先转义，每行独立；长行允许换行',section(box(p('PYTHON / 代码示例',12,LIME,900)+p('if count &lt; 3:',14,PAPER,400,'0','font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;')+p('    print(&quot;保留四个半角空格&quot;)',14,PAPER,400,'0','font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;'),bg=INK)))
-    add('C32','信息条与行内代码','时间地点、版本、短标识符','紧凑标出辅助信息，保持正文层级','大段代码放在信息条','短值可换行；代码是字体功能例外',section(box(p('版本 / GREEN · 01',14,GREEN,900)+p('入口：<span style="font-family:monospace;overflow-wrap:anywhere;">references/components.md</span>',14,TEXT,400,'0'))))
+    add('C13','轻量正文','连续叙述、解释与补充','承载主信息，给重组件留出呼吸','为凑视觉而把每段卡片化','一个自然段一项，不截断原文',section(p('清晨，第一张校样送到桌上。翻到照片那一页，图里的铅笔线比昨天清楚了一点。',margin='0',extra='line-height:2;text-align:justify;'),padding='6px 20px 14px'))
+    add('C14','二级小节标题','一级章节内的子问题','在同一议题内建立次级层次','把普通强调句升级为标题','建议两行以内，长标题自然换行',section(folio('02.1 / FIELD NOTES','SECTION 02') + subhead('一张照片，怎样成为证据？'),padding='18px 20px 8px'))
+    add('C15','三级短标题','小节内的短步骤或术语分组','以轻量标识表达更低层级','与一级章节使用同样粗重卡片','短标题为宜，不强加英文副标题',section(chip('02.1a') + p('先看画面边缘',16,INK,900,'6px 0 0','line-height:1.35;'),padding='10px 20px 6px'))
+    add('C16','导读与看点','长文开头、读者需要路线图','先告诉读者会解决哪些问题','假装可点击锚点目录','2—4 项，来自真实内容，不强制一篇只三章',section(folio('CONTENTS','本篇导读') + register([('01','观察','从一张现场照片开始。'),('02','对照','把两次校样摆在一起。'),('03','定稿','留下可以复核的细节。')])))
+    add('C17','行内标记组合','正文确有重点短语、术语或结论','加粗、色底与底边框表达不同强度','整段高亮或按固定频率胡乱标记','每段通常 1—2 个短语，按语义选择',section(p(f'两张样片都保留了<strong style="color:{GREEN};font-weight:900;">原始比例</strong>。放大后看，<span style="background:{LIME};color:{INK};padding:1px 4px;">铅笔标记</span>恰好落在<span style="border-bottom:2px solid {GREEN};">裁切线</span>上。',margin='0',extra='line-height:2;text-align:justify;'),padding='6px 20px 14px'))
+    add('C18','普通引用与出处','他人原话、文献摘录、多段引用','区分作者叙述和被引用内容','把个人感想伪装为文献证据','出处有依据才填；长引用可增段',section(chip('FIELD NOTE') + section(p('“留一点纸边，读者才能看出这张图是怎样被裁出来的。”',19,INK,900,'0','line-height:1.45;') + p('—— 校样笔记 · 示例引文',14,MUTED,400,'10px 0 0'),SOFT,f'border-left:6px solid {GREEN};margin-top:12px;','0 0 0 14px'),SOFT,f'border-top:3px solid {INK};','20px'))
+    add('C19','无序要点','真实并列、无先后关系的信息','平行列出要点','顺序流程却不编号','2—6 项；每项自然增高',section(register([('●','拍摄位置','同一机位便于比较。'),('●','纸张边缘','留出装订和裁切的痕迹。')])))
+    add('C20','步骤时间线','有先后顺序的操作、流程','让步骤、动作和说明连续可跟随','仅有日期没有流程却编造因果','复制完整步骤，编号由顺序生成',section(folio('PROCESS','工作顺序') + register([('01','选片','从原图中选取同一视角。'),('02','排样','在图下标明拍摄位置。'),('03','复核','重新打开校样，逐项核对。')])))
+    add('C21','行动检查清单','发布前核对、读者执行动作','把待核对事项明确列出','假装勾选状态会保存','方框为静态符号，不记录用户操作',section(folio('PROOF SHEET','定稿核对') + register([('□','图题对应','核对照片与图注。'),('□','比例准确','比对原始素材。'),('□','手机复核','打开保存后的草稿。')])))
+    add('C22','静态 FAQ','答疑、访谈、常见问题','问题与回答成组表达','无提问语义的章节标题','一个问答一组，回答可多段',section(register([('Q','为什么保留纸边？',''),('A','它提供了尺寸参照。','看见纸边，读者就能判断画面裁去了多少。')])))
+    add('C23','概念解释卡','首次出现、需要定义的术语','名词、定义、边界清晰分层','普通段落硬套概念标签','一个概念一张卡；不能删掉必要限定',section(chip('DEFINITION') + p('出血线',24,INK,900,'12px 0 8px','line-height:1.35;letter-spacing:-0.8px;') + p('图像延伸到成品裁切线以外的边界。印刷裁切略有偏移时，边缘仍有图像覆盖。',margin='0'),SOFT,f'border-top:3px solid {INK};border-left:6px solid {GREEN};'))
+    add('C24','案例档案卡','有情境、动作和结果的真实案例','让事实结构可扫描','补造结果或把目标写成成果','至少有真实情境；缺结果时写待验证',section(folio('CASE FILE','档案 01') + subhead('两次校样的纸边') + register([('缘起','照片贴近裁切线',''),('动作','扩大取景，保留纸边',''),('记录','在图注中标出裁切位置','')])))
+    add('C25','数字亮点','需要读者记住且有依据的数据','数字、含义、单位与来源一起出现','无来源的大数字宣传','必须有口径；不能自动凑百分比',section(p('PROOF SHEET / 校样记录',12,LIME,900,'0 0 10px','letter-spacing:1.2px;line-height:1.3;') + p('03',32,LIME,900,'0','line-height:1.08;letter-spacing:-1.5px;') + p('次校样',19,PAPER,900,'4px 0 10px','line-height:1.35;') + p('示例计数 · 初校、复校与定稿各一次。',14,'#d2d8d0',400,'0'),GREEN,f'border-bottom:6px solid {LIME};'))
+    add('C26','上下前后对照','说明较长的前后变化或双对象比较','保持比较关系，给长文案完整宽度','静默替换作者选定的双栏','与 C05 并存，按长度选择',section(section(p('01 / BEFORE',12,LIME,900,'0 0 8px','letter-spacing:1.2px;') + p('第一版只留下画面中央，纸边的铅笔线被一起裁去。',16,PAPER,400,'0'),GREEN,padding='16px 14px') + section(chip('02 / AFTER') + p('第二版向外保留一圈纸边，两次裁切的位置都能辨认。',margin='8px 0 0'),SOFT,f'border-top:2px solid {INK};','16px 14px'),PAPER,f'border:2px solid {INK};','0'))
+    add('C27','自然尺寸图片与 GIF','普通截图、小图、GIF','小图不强制拉伸，图注保持可编辑','默认所有图都铺满','GIF 用真实素材并单测；无图注时删除说明',section(plate(image(),'FIG. 02','纸边细节 · 按素材原始比例显示。'),padding='6px 20px 24px'))
+    add('C28','左图右文','产品、人物或作品的简短介绍','图片与解释相邻，形成同一阅读单元','长履历和多段故事强塞半栏','图片 42%、文字 58%；说明短、窄屏复核',section(plate(f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tr><td style="width:42%;border-right:2px solid {INK};padding:12px;vertical-align:top;background:{SOFT};">'+image()+'</td><td style="width:58%;padding:12px;vertical-align:top;">'+p('工作台侧面',19,GREEN,900)+p('图片提供对象，文字说明它与本节内容的关系。',14,TEXT,400,'0')+'</td></tr></table>','FIG. 03','工作台侧面 · 拍摄位置与图像相邻。')))
+    add('C29','双图与共享图注','两个界面、前后状态或同组作品','两张图在同一尺度下比较','不相关图片硬凑比较','独立绑定两张素材，不自动裁切证据截图',section(plate(f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tr><td style="width:50%;padding:8px;vertical-align:top;border-right:2px solid {INK};">'+image()+'</td><td style="width:50%;padding:8px;vertical-align:top;">'+image(2)+'</td></tr></table>','FIG. 04–05','同一机位 · 左为初校，右为定稿。')))
+    add('C30','横向滑动图集','多张截图、作品或分镜','用手动滑动保持单张图可读宽度','称作自动轮播、隐藏必须阅读的结论','2—6 张；明确滑动提示；非 SVG',section(folio('CONTACT SHEET','向左滑动') + f'<section style="overflow-x:auto;white-space:nowrap;">' + ''.join('<section style="display:inline-block;width:82%;box-sizing:border-box;vertical-align:top;white-space:normal;padding-right:8px;">' + plate(image(i),f'FIG. {i:02}',caption) + '</section>' for i,caption in enumerate(['原始取景','第一次裁切','定稿校样'],1)) + '</section>'),profile='scroll')
+    add('C31','代码、命令与 Prompt','技术教程与可复制提示词','等宽展示，保留缩进和符号','把代码半角字符全角化','内容先转义，每行独立；长行允许换行',section(p('SOURCE / PYTHON',12,LIME,900,'0 0 14px','letter-spacing:1.2px;line-height:1.3;')+p('if count &lt; 3:',14,PAPER,400,'0','font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;')+p('    print(&quot;保留四个半角空格&quot;)',14,PAPER,400,'0','font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;'),INK,f'border-bottom:6px solid {LIME};'))
+    add('C32','信息条与行内代码','时间地点、版本、短标识符','紧凑标出辅助信息，保持正文层级','大段代码放在信息条','短值可换行；代码是字体功能例外',section(folio('EDITION NOTES','版本 01') + p('组件索引',14,INK,900,'0 0 4px') + p('references/components.md',14,GREEN,400,'0','font-family:monospace;overflow-wrap:anywhere;'),SOFT,f'border-top:3px solid {INK};','14px 20px'))
+
 
     for i, name, scene, expr in [(12,'点击展开抽屉','正文补充解释','由紧凑提示展开详情'),(13,'点击揭晓答案','自测或悬念','读者点击后看到答案')]:
         add(f'I{i-11:02}',name,scene,expr,'替代必须直接可见的结论','一次展开，无法回缩；viewBox 动画待微信保存与手机验证；文案逐行核对',normalize_original(blocks[i],svg=True),'svg-legacy','原版动效与视觉保留，字体／色板统一')
@@ -137,7 +170,9 @@ def catalog():
 <text x="20" y="92" font-size="19" font-weight="900" fill="{INK}">设计不应吞掉内容。</text>
 <text x="20" y="130" font-size="16" fill="{TEXT}">揭晓后仍保持同一画板高度。</text>
 <g><rect x="2" y="2" width="376" height="216" fill="{GREEN}"/>
-<text x="20" y="55" font-size="14" fill="{LIME}" font-weight="900">TAP TO REVEAL</text>
+<line x1="20" y1="65" x2="360" y2="65" stroke="#487061"/>
+<rect x="2" y="210" width="376" height="8" fill="{LIME}"/>
+<text x="20" y="55" font-size="14" fill="{LIME}" font-weight="900">QUESTION / 01</text>
 <text x="20" y="104" font-size="24" fill="{PAPER}" font-weight="900">点击揭开答案</text>
 <text x="20" y="156" font-size="16" fill="{PAPER}">固定画板 · 一次揭晓</text>
 <rect x="0" y="0" width="380" height="220" fill="{PAPER}" fill-opacity="0"/>
@@ -146,6 +181,8 @@ def catalog():
     add('I03','固定画板点击揭晓','短问答、谜底、转折','覆盖层淡出后露出答案','必须推进后续正文的展开抽屉','固定高宽比，一次揭晓，非持久答题；手机待验收',section(reveal),'svg','新增属性级 SMIL')
     draw = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 200" style="display:block;width:100%;height:auto;overflow:hidden;">
 <rect x="1" y="1" width="378" height="198" fill="{GREEN}" stroke="{INK}" stroke-width="2"/>
+<line x1="20" y1="50" x2="360" y2="50" stroke="#487061"/>
+<rect x="2" y="190" width="376" height="8" fill="{LIME}"/>
 <text x="20" y="38" font-size="14" font-weight="900" fill="{LIME}">LOGIC / 点击生长路线</text>
 <g stroke="{LIME}" stroke-width="4" stroke-dasharray="500" stroke-dashoffset="500">
 <path d="M30 105 L130 105 L130 75 L250 75 L250 120 L350 120" fill="none"/>
